@@ -130,12 +130,12 @@ export default function Avaliacoes() {
         // O import dinâmico evita erros no SSR (Server Side Rendering) do Next.js
         const html2pdf = (await import('html2pdf.js')).default;
         const opt = {
-          margin:       [15, 15, 15, 15],
+          margin:       [15, 15, 15, 15] as [number, number, number, number],
           filename:     `avaliacao_${patientName || 'paciente'}.pdf`,
-          image:        { type: 'jpeg', quality: 1 },
+          image:        { type: 'jpeg' as const, quality: 1 },
           pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
           html2canvas:  { scale: 3, useCORS: true, letterRendering: true, windowWidth: 1200 },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
         };
         html2pdf().set(opt).from(element).save();
       }
@@ -242,7 +242,7 @@ export default function Avaliacoes() {
 
             <div id="evaluation-form" className="grid grid-cols-1 md:grid-cols-12 gap-8">
               <div className="md:col-span-8 space-y-8">
-                <div className="bg-surface-container p-6 rounded-xl border border-outline-variant grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-surface-container p-4 md:p-6 rounded-xl border border-outline-variant grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                    <div className="space-y-2">
                     <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Seleção do Paciente</label>
                     <select 
@@ -292,7 +292,7 @@ export default function Avaliacoes() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Peso (kg)</label>
                     <input 
@@ -326,12 +326,12 @@ export default function Avaliacoes() {
                   </div>
                 </div>
 
-                <div className="bg-surface-container p-6 rounded-xl border border-outline-variant space-y-6">
-                  <div className="flex items-center justify-between">
+                <div className="bg-surface-container p-4 md:p-6 rounded-xl border border-outline-variant space-y-4 md:space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h3 className="text-sm font-black text-on-surface uppercase tracking-widest">Perímetros (cm)</h3>
-                    <div className="h-px flex-1 bg-outline-variant mx-4" />
+                    <div className="hidden sm:block h-px flex-1 bg-outline-variant mx-4" />
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Cintura (cm)</label>
                       <input 
@@ -362,12 +362,12 @@ export default function Avaliacoes() {
                   </div>
                 </div>
 
-                <div className="bg-surface-container p-6 rounded-xl border border-outline-variant space-y-6">
-                  <div className="flex items-center justify-between">
+                <div className="bg-surface-container p-4 md:p-6 rounded-xl border border-outline-variant space-y-4 md:space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <h3 className="text-sm font-black text-on-surface uppercase tracking-widest">Dobras Cutâneas (mm)</h3>
-                    <span className="bg-[#4edea31a] text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[#4edea333]">Adipômetro Ativo</span>
+                    <span className="bg-[#4edea31a] text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[#4edea333] self-start sm:self-auto">Adipômetro Ativo</span>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                     {[
                       { label: 'Tricipital', key: 'tricipital' },
                       { label: 'Subescapular', key: 'subescapular' },
@@ -392,8 +392,8 @@ export default function Avaliacoes() {
                 </div>
 
                 <div data-html2canvas-ignore="true" className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden">
-                  <div className="p-6 border-b border-outline-variant flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-on-surface">Histórico Recente</h3>
+                  <div className="p-4 md:p-6 border-b border-outline-variant flex justify-between items-center">
+                    <h3 className="text-lg md:text-xl font-bold text-on-surface">Histórico Recente</h3>
                     <button onClick={fetchEvaluations} className="text-primary hover:rotate-180 transition-transform duration-500">
                       <RefreshCw size={18} />
                     </button>

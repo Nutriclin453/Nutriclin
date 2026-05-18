@@ -93,9 +93,9 @@ export function Sidebar() {
         <div className="p-6 border-t border-outline-variant space-y-4">
           {user && (
             <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high border border-outline-variant">
-              <img src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} alt="User" className="w-10 h-10 rounded-lg" />
+              <img src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.user_metadata?.full_name || 'User'}`} alt="User" className="w-10 h-10 rounded-lg" />
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-on-surface truncate">{user.displayName}</p>
+                <p className="text-xs font-bold text-on-surface truncate">{user.user_metadata?.full_name || 'Dr(a). Antonio Feitoza'}</p>
                 <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
               </div>
             </div>

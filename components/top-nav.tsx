@@ -71,16 +71,16 @@ export function TopNav() {
 
         <div className="flex items-center gap-3 pl-2">
           <div className="hidden lg:flex flex-col items-end">
-            <span className="text-sm font-black text-on-surface leading-tight">{user?.displayName || user?.email || 'Antonio Feitoza'}</span>
+            <span className="text-sm font-black text-on-surface leading-tight">{user?.user_metadata?.full_name || user?.email || 'Antonio Feitoza'}</span>
             <span className="text-[9px] font-bold text-primary uppercase tracking-tighter">Nutricionista Esportivo</span>
             <span className="text-[8px] font-medium text-on-surface-variant uppercase">CRN 16029</span>
           </div>
           <div className="relative">
             <div className="w-10 h-10 rounded-full border-2 border-primary/20 p-0.5 overflow-hidden flex items-center justify-center bg-surface-container-high">
-              {user?.photoURL ? (
+              {user?.user_metadata?.avatar_url ? (
                 <img 
-                  src={user.photoURL}
-                  alt={user.displayName || "Usuário"} 
+                  src={user.user_metadata.avatar_url}
+                  alt={user.user_metadata?.full_name || "Usuário"} 
                   className="w-full h-full object-cover rounded-full"
                 />
               ) : (
