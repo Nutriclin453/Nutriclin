@@ -47,6 +47,19 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = async (email: string, pass: string) => {
     setLoading(true);
+    
+    // Check if using placeholder supabase
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+      // Mock login
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
+      const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
+      setUser(mockUser);
+      setSession(mockSession);
+      setLoading(false);
+      return mockUser;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     setLoading(false);
     if (error) throw error;
@@ -55,6 +68,17 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
 
   const registerWithEmail = async (email: string, pass: string) => {
     setLoading(true);
+
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
+      const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
+      setUser(mockUser);
+      setSession(mockSession);
+      setLoading(false);
+      return mockUser;
+    }
+
     const { data, error } = await supabase.auth.signUp({ email, password: pass });
     setLoading(false);
     if (error) throw error;
@@ -62,6 +86,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSystemLogout = async () => {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+      setUser(null);
+      setSession(null);
+      return;
+    }
     await supabase.auth.signOut();
   };
 

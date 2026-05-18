@@ -120,12 +120,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   setIsLoadingAuth(true);
                   setAuthError('');
                   try {
-                    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
-                    if (error) throw error;
-                    if (data?.user && !data.session) {
+                    const user = await registerWithEmail(email.trim(), password);
+                    if (user && !user.confirmed_at && process.env.NEXT_PUBLIC_SUPABASE_URL) {
                        setAuthError("Conta criada, mas requer confirmação. Vá ao console do Supabase > Authentication > Providers e desative 'Confirm email', ou verifique seu e-mail.");
-                    } else {
-                       setAuthError("Conta criada no Supabase! Agora você pode logar.");
+                    } else if (user) {
+                       setAuthError("Conta criada no sistema! Agora você pode logar.");
+                       if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+                         // Mocking automatically logged in state is handled by registerWithEmail
+                         // But if we want to just show the message, that's fine.
+                         // Actually mock register sets user and session, so it should redirect instantly.
+                       }
                     }
                   } catch (err: any) {
                     setAuthError("Erro ao criar: " + err.message);
