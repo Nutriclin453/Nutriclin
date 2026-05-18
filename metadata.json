@@ -1,0 +1,6 @@
+{
+  "name": "Antonio Feitoza CRM",
+  "description": "CRM especializado para nutricionistas esportivos com ferramentas de avaliação, dieta e treino.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

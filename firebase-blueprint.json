@@ -1,0 +1,31 @@
+{
+  "collections": {
+    "evaluations": {
+      "patientName": "string",
+      "gender": "string",
+      "weight": "number",
+      "height": "number",
+      "age": "number?",
+      "objective": "string?",
+      "waist": "number?",
+      "abdominal": "number?",
+      "neck": "number?",
+      "skinfolds": "object",
+      "bmi": "number",
+      "tdee": "number",
+      "createdAt": "timestamp"
+    },
+    "patients": {
+      "name": "string",
+      "email": "string",
+      "phone": "string",
+      "goal": "string",
+      "status": "string",
+      "lastVisit": "timestamp?",
+      "birthDate": "timestamp?",
+      "gender": "string?",
+      "createdBy": "string",
+      "createdAt": "timestamp"
+    }
+  }
+}
