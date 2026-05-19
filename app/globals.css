@@ -1,39 +1,153 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #0b1326;
-  --color-surface-dim: #0b1326;
-  --color-surface-bright: #31394d;
-  --color-surface-container-lowest: #060e20;
-  --color-surface-container-low: #131b2e;
-  --color-surface-container: #171f33;
-  --color-surface-container-high: #222a3d;
-  --color-surface-container-highest: #2d3449;
-  --color-on-surface: #dae2fd;
-  --color-on-surface-variant: #bbcabf;
-  --color-primary: #4edea3;
-  --color-on-primary: #003824;
-  --color-primary-container: #10b981;
-  --color-secondary: #b7c8e1;
-  --color-secondary-container: #3a4a5f;
-  --color-tertiary: #ffb3af;
-  --color-error: #ffb4ab;
-  --color-outline: #86948a;
-  --color-outline-variant: #3c4a42;
+  --color-surface: var(--c-surface);
+  --color-surface-dim: var(--c-surface-dim);
+  --color-surface-bright: var(--c-surface-bright);
+  --color-surface-container-lowest: var(--c-surface-container-lowest);
+  --color-surface-container-low: var(--c-surface-container-low);
+  --color-surface-container: var(--c-surface-container);
+  --color-surface-container-high: var(--c-surface-container-high);
+  --color-surface-container-highest: var(--c-surface-container-highest);
+  --color-on-surface: var(--c-on-surface);
+  --color-on-surface-variant: var(--c-on-surface-variant);
+  --color-primary: var(--c-primary);
+  --color-on-primary: var(--c-on-primary);
+  --color-primary-container: var(--c-primary-container);
+  --color-secondary: var(--c-secondary);
+  --color-secondary-container: var(--c-secondary-container);
+  --color-tertiary: var(--c-tertiary);
+  --color-error: var(--c-error);
+  --color-outline: var(--c-outline);
+  --color-outline-variant: var(--c-outline-variant);
 
   --font-sans: var(--font-sans), system-ui, sans-serif;
 }
 
+:root {
+  /* Light Mode (slate palette) */
+  --c-surface: #f8fafc; /* slate-50 */
+  --c-surface-dim: #f1f5f9; /* slate-100 */
+  --c-surface-bright: #ffffff;
+  --c-surface-container-lowest: #ffffff;
+  --c-surface-container-low: #f8fafc;
+  --c-surface-container: #ffffff;
+  --c-surface-container-high: #f1f5f9;
+  --c-surface-container-highest: #e2e8f0;
+  --c-on-surface: #0f172a; /* slate-900 */
+  --c-on-surface-variant: #64748b; /* slate-500 */
+  --c-primary: #10b981;
+  --c-on-primary: #ffffff;
+  --c-primary-container: #d1fae5;
+  --c-secondary: #334155;
+  --c-secondary-container: #e2e8f0;
+  --c-tertiary: #ef4444;
+  --c-error: #ef4444;
+  --c-outline: #cbd5e1;
+  --c-outline-variant: #e2e8f0; /* slate-200 */
+}
+
+.dark {
+  /* Dark Mode (slate palette) */
+  --c-surface: #020617; /* slate-950 */
+  --c-surface-dim: #020617;
+  --c-surface-bright: #1e293b;
+  --c-surface-container-lowest: #020617;
+  --c-surface-container-low: #0f172a;
+  --c-surface-container: #0f172a; /* slate-900 */
+  --c-surface-container-high: #1e293b; /* slate-800 */
+  --c-surface-container-highest: #334155;
+  --c-on-surface: #f1f5f9; /* slate-100 */
+  --c-on-surface-variant: #94a3b8; /* slate-400 */
+  --c-primary: #34d399; /* Emerald-400 */
+  --c-on-primary: #022c22;
+  --c-primary-container: #10b981;
+  --c-secondary: #94a3b8;
+  --c-secondary-container: #1e293b;
+  --c-tertiary: #fca5a5;
+  --c-error: #fca5a5;
+  --c-outline: #475569;
+  --c-outline-variant: #1e293b; /* slate-800 */
+}
+
 @layer base {
+  body {
+    background-color: var(--c-surface);
+    color: var(--c-on-surface);
+  }
+  
   * {
-    @apply border-outline-variant;
+    border-color: var(--c-outline-variant);
   }
 }
 
 .glass-card {
-  @apply bg-surface-container/70 backdrop-blur-md border border-outline-variant;
+  background-color: color-mix(in srgb, var(--c-surface-container) 70%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--c-outline-variant);
 }
 
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+@media print {
+  @page {
+    margin: 1cm;
+  }
+  
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .dark {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  /* Force background colors and images for printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Text color fixes for light background */
+  .dark .text-slate-100, 
+  .dark .text-slate-300, 
+  .dark .text-slate-400 {
+    color: #1e293b !important; /* slate-800 */
+  }
+  
+  .dark .text-emerald-400 {
+    color: #059669 !important; /* emerald-600 */
+  }
+
+  .text-slate-500 {
+    color: #64748b !important;
+  }
+
+  /* Border color fixes */
+  .dark .border-slate-800,
+  .dark .border-slate-700 {
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Background color fixes */
+  .dark .bg-slate-900,
+  .dark .bg-slate-800,
+  .dark .bg-[#0f172a] {
+    background-color: white !important;
+  }
+
+  /* Hide UI elements during printing */
+  #btn-imprimir, 
+  .sidebar, 
+  aside, 
+  nav,
+  button,
+  .print\:hidden {
+    display: none !important;
+  }
 }

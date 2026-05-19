@@ -19,10 +19,18 @@ export const PatientService = {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) throw new Error('User not authenticated');
     
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { birthDate, lastVisit, ...restData } = data;
+
     const { data: newPatient, error } = await supabase
       .from('patients')
       .insert([
-        { ...data, created_by: userData.user.id }
+        {
+          ...restData,
+          birth_date: birthDate,
+          last_visit: lastVisit,
+          created_by: userData.user.id
+        }
       ])
       .select()
       .single();
@@ -35,9 +43,16 @@ export const PatientService = {
   },
 
   async update(id: string, data: Partial<Omit<Patient, 'id' | 'createdBy' | 'createdAt'>>) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { birthDate, lastVisit, ...restData } = data;
+    const updateData: any = { ...restData };
+    
+    if (birthDate !== undefined) updateData.birth_date = birthDate;
+    if (lastVisit !== undefined) updateData.last_visit = lastVisit;
+
     const { data: updatedPatient, error } = await supabase
       .from('patients')
-      .update(data)
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();

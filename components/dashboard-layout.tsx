@@ -46,24 +46,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background space-y-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 space-y-4">
         <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-sm font-bold text-on-surface-variant uppercase tracking-widest animate-pulse">Autenticando...</p>
+        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">Autenticando...</p>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md bg-surface-container border border-outline-variant rounded-3xl p-8 space-y-8 shadow-2xl">
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4">
+        <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-8 shadow-2xl">
           <div className="flex flex-col items-center text-center space-y-4">
             <div className="p-4 bg-primary/10 rounded-full text-primary border border-primary/20">
               <Lock size={32} />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-on-surface">Acesso Restrito</h1>
-              <p className="text-on-surface-variant text-sm mt-2">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">Acesso Restrito</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
                 Faça login para acessar o sistema
               </p>
             </div>
@@ -71,24 +71,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <form onSubmit={handleEmailAuth} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">E-mail</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">E-mail</label>
               <input 
                 type="email" 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface outline-none focus:border-primary transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-slate-100 outline-none focus:border-primary transition-all"
                 placeholder="nutriantoni660@gmail.com"
                 required
               />
             </div>
             
             <div className="space-y-2">
-              <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Senha</label>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">Senha</label>
               <input 
                 type="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface outline-none focus:border-primary transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-slate-100 outline-none focus:border-primary transition-all"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -137,7 +137,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     setIsLoadingAuth(false);
                   }
                 }}
-                className="w-full bg-transparent border border-outline-variant text-on-surface-variant py-3 rounded-xl font-bold hover:bg-surface-dim active:scale-95 transition-all flex justify-center items-center gap-2 disabled:opacity-50 text-xs uppercase tracking-wider"
+                className="w-full bg-transparent border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all flex justify-center items-center gap-2 disabled:opacity-50 text-xs uppercase tracking-wider"
               >
                 Primeiro acesso? Registrar senha
               </button>
@@ -149,11 +149,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex-1 lg:ml-64 flex flex-col overflow-hidden relative">
-        <TopNav />
-        <main className="mt-16 p-4 lg:p-8 overflow-y-auto h-full custom-scrollbar">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 print:h-auto print:overflow-visible">
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
+      <div className="flex-1 lg:ml-64 flex flex-col overflow-hidden relative print:ml-0 print:block print:overflow-visible">
+        <div className="print:hidden">
+          <TopNav />
+        </div>
+        <main className="mt-16 p-4 lg:p-8 overflow-y-auto h-full custom-scrollbar print:mt-0 print:p-0 print:overflow-visible print:h-auto">
           <div className="max-w-7xl mx-auto pb-12">
             {children}
           </div>

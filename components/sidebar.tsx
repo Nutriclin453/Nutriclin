@@ -44,8 +44,8 @@ export function Sidebar() {
         />
       )}
 
-      <aside className={`fixed left-0 top-0 z-50 w-64 bg-surface-container border-r border-outline-variant h-screen flex flex-col transition-transform duration-300 transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="h-16 flex items-center px-6 border-b border-outline-variant bg-[#0a0c10]">
+      <aside className={`fixed left-0 top-0 z-50 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-screen flex flex-col transition-transform duration-300 transform lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <Link href="/" className="flex items-center w-full group">
             <div className="relative w-full h-10 transition-transform duration-300 group-hover:scale-105">
               <Image 
@@ -77,7 +77,7 @@ export function Sidebar() {
                 className={`flex items-center justify-between p-3 rounded-xl transition-all group ${
                   isActive 
                   ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' 
-                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -90,17 +90,17 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="p-6 border-t border-outline-variant space-y-4">
+        <div className="p-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
           {user && (
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-container-high border border-outline-variant">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
               <img src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user.user_metadata?.full_name || 'User'}`} alt="User" className="w-10 h-10 rounded-lg" />
               <div className="overflow-hidden">
-                <p className="text-xs font-bold text-on-surface truncate">{user.user_metadata?.full_name || 'Dr(a). Antonio Feitoza'}</p>
-                <p className="text-[10px] text-on-surface-variant truncate">{user.email}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user.user_metadata?.full_name || 'Dr(a). Antonio Feitoza'}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
               </div>
             </div>
           )}
-          <button onClick={logout} className="w-full flex items-center gap-3 p-3 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-all font-bold text-sm">
+          <button onClick={logout} className="w-full flex items-center gap-3 p-3 text-slate-600 dark:text-slate-400 hover:text-error hover:bg-error/10 rounded-xl transition-all font-bold text-sm">
             <LogOut size={20} />
             <span>Sair do Sistema</span>
           </button>

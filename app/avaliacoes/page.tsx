@@ -400,7 +400,7 @@ export default function Avaliacoes() {
                   </div>
                   <div className="overflow-x-auto">
                      <table className="w-full text-left">
-                      <thead className="bg-[#0b132680] text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
+                      <thead className="bg-surface-dim/50 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
                         <tr>
                           <th className="px-6 py-4">Paciente</th>
                           <th className="px-6 py-4">Data</th>
@@ -425,7 +425,7 @@ export default function Avaliacoes() {
                           </tr>
                         ) : (
                           evaluations.map((ev) => (
-                             <tr key={ev.id} className="hover:bg-[#222a3d4d] transition-colors group">
+                             <tr key={ev.id} className="hover:bg-surface-container-high/30 transition-colors group">
                               <td className="px-6 py-4 text-sm font-medium">{ev.patientName}</td>
                               <td className="px-6 py-4 text-xs text-on-surface-variant">
                                 {ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString() : 'Recent'}

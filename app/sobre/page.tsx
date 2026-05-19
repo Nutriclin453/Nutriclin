@@ -165,7 +165,7 @@ export default function Sobre() {
                 referrerPolicy="no-referrer"
               />
             </div>
-            <p>© 2024 Antonio Feitoza Nutrição. Todos os direitos reservados.</p>
+            <p>© 2026 Antonio Feitoza Nutrição. Todos os direitos reservados.</p>
           </div>
           <div className="flex gap-4 md:gap-8">
             <a href="#" className="hover:text-primary transition-colors">Privacidade</a>
