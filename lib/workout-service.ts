@@ -68,6 +68,11 @@ export const WorkoutService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) throw new Error('User not authenticated');
 
       // Create a clean payload with only columns that exist in the DB

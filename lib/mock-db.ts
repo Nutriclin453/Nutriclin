@@ -289,13 +289,18 @@ export const saveEvaluation = (ev: any): any => {
   const list = getEvaluations();
   let updated: any;
   if (ev.id) {
+    let found = false;
     list.forEach((item, idx) => {
       if (item.id === ev.id) {
         list[idx] = { ...item, ...ev };
         updated = list[idx];
+        found = true;
       }
     });
-    updated = ev;
+    if (!found) {
+      updated = ev;
+      list.push(updated);
+    }
   } else {
     updated = {
       ...ev,

@@ -48,6 +48,11 @@ export const DietService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) {
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return [];
         throw new Error('User not authenticated');
@@ -107,6 +112,11 @@ export const DietService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) throw new Error('User not authenticated');
 
       const dietData: any = {

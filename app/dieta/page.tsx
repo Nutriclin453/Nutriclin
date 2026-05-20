@@ -31,6 +31,7 @@ const PRESET_GOALS = [
   "Emagrecimento",
   "Manutenção",
   "Performance",
+  "Saúde"
 ];
 
 const PRESET_TAGS = [
@@ -413,8 +414,9 @@ export default function Dieta() {
       const patientDiets = await DietService.getByPatientId(patientId);
       if (patientDiets && patientDiets.length > 0) {
         const d = patientDiets[0];
+        const defaultGoal = patient?.goal && PRESET_GOALS.includes(patient.goal) ? patient.goal : "Hipertrofia";
         setDietId(d.id);
-        setGoal(d.goal || "Hipertrofia");
+        setGoal(d.goal || defaultGoal);
         setNotes(d.notes || "");
         setMacros({ hydration: defaultHydration, ...d.macros } as any);
         // Ensure exactly 5 fixed meals
@@ -442,8 +444,9 @@ export default function Dieta() {
 
         setMeals(rawMeals);
       } else {
+        const defaultGoal = patient?.goal && PRESET_GOALS.includes(patient.goal) ? patient.goal : "Hipertrofia";
         setDietId(undefined);
-        setGoal("Hipertrofia");
+        setGoal(defaultGoal);
         setNotes("");
         setMacros({
           protein: 0,
@@ -457,12 +460,10 @@ export default function Dieta() {
         setMeals(getDefaultMeals());
       }
     } catch (err: any) {
-      if (!String(err?.message || err).toLowerCase().includes('failed to fetch')) {
-        setErrorMsg(
-          err.message ||
-            "Erro ao buscar dieta. Se a tabela não existir, crie a migration.",
-        );
-      }
+      setErrorMsg(
+        err.message ||
+          "Erro ao buscar dieta. Se a tabela não existir, crie a migration.",
+      );
       resetDiet();
     } finally {
       setLoadingDiet(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { 
   Users, 
@@ -22,6 +22,9 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { motion } from 'motion/react';
+import { PatientService } from '@/lib/patient-service';
+import { EvaluationService } from '@/lib/evaluation-service';
+import { DietService } from '@/lib/diet-service';
 
 const data = [
   { name: 'Jan', value: 400 },
@@ -33,6 +36,91 @@ const data = [
 ];
 
 export default function Dashboard() {
+  const [totalPatients, setTotalPatients] = useState<number | null>(null);
+  const [totalEvaluations, setTotalEvaluations] = useState<number | null>(null);
+  const [totalDiets, setTotalDiets] = useState<number | null>(null);
+  const [nextAppointment, setNextAppointment] = useState<{ patientName: string; date: Date } | null>(null);
+  const [statsLoaded, setStatsLoaded] = useState(false);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const [patientsData, evaluationsData, dietsData] = await Promise.all([
+          PatientService.getAll(),
+          EvaluationService.getAll(),
+          DietService.getAll()
+        ]);
+        setTotalPatients(patientsData?.length || 0);
+        setTotalEvaluations(evaluationsData?.length || 0);
+        setTotalDiets(dietsData?.length || 0);
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Start of today for comparison
+
+        let upcoming: { patientName: string; date: Date }[] = [];
+
+        if (patientsData) {
+          patientsData.forEach(p => {
+             if (p.lastVisit) {
+                let date;
+                if (typeof p.lastVisit.toDate === 'function') {
+                   date = p.lastVisit.toDate();
+                } else {
+                   date = new Date(p.lastVisit as string);
+                }
+                if (date >= now) {
+                   upcoming.push({ patientName: p.name, date });
+                }
+             }
+          });
+        }
+
+        if (evaluationsData) {
+          evaluationsData.forEach(e => {
+             if (e.createdAt) {
+                let date;
+                if (typeof e.createdAt.toDate === 'function') {
+                   date = e.createdAt.toDate();
+                } else {
+                   date = new Date(e.createdAt as string);
+                }
+                if (date >= now) {
+                   upcoming.push({ patientName: e.patientName, date });
+                }
+             }
+          });
+        }
+
+        if (upcoming.length > 0) {
+           upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
+           setNextAppointment(upcoming[0]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      } finally {
+        setStatsLoaded(true);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  const getNextAppointmentDisplay = () => {
+    if (!statsLoaded) return { value: '—', subtitle: '' };
+    if (!nextAppointment) return { value: 'Nenhum pendente', subtitle: 'Nenhum agendamento pendente', isNone: true };
+    
+    // format as 'DD [Mês por extenso]'
+    const day = String(nextAppointment.date.getDate()).padStart(2, '0');
+    const month = nextAppointment.date.toLocaleDateString('pt-BR', { month: 'long' });
+    const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+    
+    return {
+      value: `${day} ${formattedMonth}`,
+      subtitle: nextAppointment.patientName
+    };
+  };
+
+  const nextAppDisplay = getNextAppointmentDisplay();
+
   return (
     <DashboardLayout>
       <motion.div 
@@ -56,23 +144,29 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
-            { label: 'Total de Pacientes', value: '1,284', trend: '+12%', color: 'primary', icon: Users },
-            { label: 'Avaliações do Mês', value: '156', trend: '+5%', color: 'secondary', icon: Activity },
-            { label: 'Dietas Ativas', value: '942', trend: '-2%', color: 'tertiary', icon: Apple },
-            { label: 'Taxa de Retenção', value: '88%', trend: '+3%', color: 'primary', icon: CheckCircle2 },
+            { label: 'Total de Pacientes', value: totalPatients !== null ? totalPatients : '—', trend: '+12%', color: 'primary', icon: Users },
+            { label: 'Avaliações Realizadas', value: totalEvaluations !== null ? totalEvaluations : '—', trend: '+5%', color: 'secondary', icon: Activity },
+            { label: 'Dietas Ativas', value: totalDiets !== null ? totalDiets : '—', trend: '-2%', color: 'tertiary', icon: Apple },
+            { label: 'Próximo Atendimento', value: nextAppDisplay.value, trend: nextAppDisplay.subtitle, color: 'primary', icon: Calendar, customTrend: true },
           ].map((stat, i) => (
             <div key={i} className="bg-surface-container border border-outline-variant p-6 rounded-3xl hover:border-primary/50 transition-all group">
               <div className="flex justify-between items-start mb-4">
                 <div className="p-3 bg-surface-dim rounded-2xl border border-outline-variant group-hover:scale-110 transition-transform">
                   <stat.icon className="text-primary" size={24} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-black ${stat.trend.startsWith('+') ? 'text-primary' : 'text-error'}`}>
-                  {stat.trend}
-                  {stat.trend.startsWith('+') ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                </div>
+                {stat.customTrend ? (
+                   <div className="flex items-center gap-1 text-xs font-black text-on-surface-variant truncate max-w-[120px]">
+                     {stat.trend}
+                   </div>
+                ) : (
+                  <div className={`flex items-center gap-1 text-xs font-black ${stat.trend.startsWith('+') ? 'text-primary' : 'text-error'}`}>
+                    {stat.trend}
+                    {stat.trend.startsWith('+') ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                  </div>
+                )}
               </div>
               <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-widest">{stat.label}</p>
-              <p className="text-3xl font-black text-on-surface mt-1">{stat.value}</p>
+              <p className="text-3xl font-black text-on-surface mt-1 truncate">{stat.value}</p>
             </div>
           ))}
         </div>

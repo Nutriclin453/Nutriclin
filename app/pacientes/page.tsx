@@ -38,10 +38,7 @@ export default function Pacientes() {
       setPatients(data);
     } catch (error: any) {
       console.error("Error fetching patients:", error);
-      const msg = error?.message || String(error);
-      if (!msg.toLowerCase().includes('failed to fetch')) {
-        setErrorMsg(msg);
-      }
+      setErrorMsg(error?.message || String(error));
     } finally {
       setLoading(false);
     }

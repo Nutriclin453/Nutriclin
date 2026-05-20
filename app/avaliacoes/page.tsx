@@ -44,6 +44,8 @@ export default function Avaliacoes() {
   const [abdominal, setAbdominal] = useState<number | ''>('');
   const [neck, setNeck] = useState<number | ''>('');
   const [attendanceNote, setAttendanceNote] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [folds, setFolds] = useState<Skinfolds>({});
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
@@ -103,10 +105,7 @@ export default function Avaliacoes() {
       setEvaluations(data || []);
     } catch (error: any) {
       console.error(error);
-      const msg = error?.message || String(error);
-      if (!msg.toLowerCase().includes('failed to fetch')) {
-        setErrorMsg(msg);
-      }
+      setErrorMsg(error?.message || String(error));
     } finally {
       setFetchLoading(false);
     }
@@ -119,10 +118,7 @@ export default function Avaliacoes() {
       setPatients(data || []);
     } catch (error: any) {
       console.error("Error fetching patients:", error);
-      const msg = error?.message || String(error);
-      if (!msg.toLowerCase().includes('failed to fetch')) {
-        setErrorMsg(msg);
-      }
+      setErrorMsg(error?.message || String(error));
     } finally {
       setLoadingPatients(false);
     }
@@ -183,7 +179,13 @@ export default function Avaliacoes() {
         createdAt: selectedDate
       };
       
-      await EvaluationService.create(evaluationData);
+      if (isEditing && editingId) {
+        await EvaluationService.update(editingId, evaluationData);
+        alert('Avaliação atualizada com sucesso!');
+      } else {
+        await EvaluationService.create(evaluationData);
+        alert('Avaliação salva com sucesso!');
+      }
       
       // Clear form
       setWeight('');
@@ -196,12 +198,13 @@ export default function Avaliacoes() {
       setFolds({});
       setAttendanceNote('');
       setSelectedComparisons([]);
+      setIsEditing(false);
+      setEditingId(null);
       
-      alert('Avaliação salva com sucesso!');
       await fetchEvaluations();
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao salvar avaliação.');
+    } catch (error: any) {
+      console.error("Save error:", error);
+      alert('Erro ao salvar avaliação: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setLoading(false);
     }
@@ -219,6 +222,8 @@ export default function Avaliacoes() {
     setAttendanceNote('');
     setSelectedComparisons([]);
     setSelectedDate(new Date().toLocaleDateString('en-CA'));
+    setIsEditing(false);
+    setEditingId(null);
   };
 
   const handleLoadEvaluation = (ev: Evaluation) => {
@@ -233,6 +238,23 @@ export default function Avaliacoes() {
     setNeck(ev.neck || '');
     setFolds(ev.skinfolds || {});
     setAttendanceNote(ev.attendanceNote || '');
+    if (ev.createdAt && typeof ev.createdAt.toDate === 'function') {
+      setSelectedDate(ev.createdAt.toDate().toLocaleDateString('en-CA'));
+    } else if (ev.createdAt) {
+      try {
+        setSelectedDate(new Date(ev.createdAt as string).toLocaleDateString('en-CA'));
+      } catch (e) {
+        setSelectedDate(new Date().toLocaleDateString('en-CA'));
+      }
+    } else {
+      setSelectedDate(new Date().toLocaleDateString('en-CA'));
+    }
+  };
+
+  const handleEdit = (ev: Evaluation) => {
+    setIsEditing(true);
+    setEditingId(ev.id || null);
+    handleLoadEvaluation(ev);
   };
 
   const handleDelete = async (id: string | undefined) => {
@@ -379,7 +401,7 @@ export default function Avaliacoes() {
                   className="bg-primary px-6 py-3 rounded-xl text-on-primary font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
                 >
                   {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                  Salvar Avaliação
+                  {isEditing ? 'Atualizar Avaliação' : 'Salvar Avaliação'}
                 </button>
               </div>
             </div>
@@ -726,7 +748,7 @@ export default function Avaliacoes() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleLoadEvaluation(ev);
+                                    handleEdit(ev);
                                   }}
                                   className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
                                 >

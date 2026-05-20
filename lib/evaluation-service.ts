@@ -114,6 +114,11 @@ export const EvaluationService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) throw new Error('User not authenticated');
       
       // Transform JS camelCase to snake_case for Supabase
@@ -144,14 +149,13 @@ export const EvaluationService = {
         .single();
 
       if (error) {
-        // Fallback if body_fat column doesn't exist in user's current schema or schema cache is stale
+        // Fallback if missing columns exist in user's current schema
         if (
-          error.message.includes('body_fat') &&
-          (error.message.includes('does not exist') ||
-           error.message.includes('schema cache') ||
-           error.message.includes('Could not find'))
+          error.message.includes('does not exist') ||
+          error.message.includes('schema cache') ||
+          error.message.includes('Could not find')
         ) {
-          const { body_fat, ...rest } = dbData;
+          const { body_fat, attendance_note, ...rest } = dbData;
           const { data: retryEval, error: retryError } = await supabase
             .from('evaluations')
             .insert([rest])
@@ -207,6 +211,11 @@ export const EvaluationService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) return [];
       
       const { data, error } = await supabase
@@ -248,6 +257,94 @@ export const EvaluationService = {
         createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
       })) as unknown as Evaluation[];
     } catch (err) {
+      return handleFetchError(err, runMockFallback);
+    }
+  },
+
+  async update(id: string, data: Partial<Evaluation>) {
+    const runMockFallback = () => {
+      // Basic mock update: get all, modify, and save back isn't fully implemented in mock-db,
+      // but we will do a saveEvaluation which might not exist for update.
+      // Assuming a simplistic approach. This is minimal required for mock.
+      const current = getEvaluations().find(e => e.id === id);
+      if (current) {
+        deleteEvaluation(id);
+        const updated = {
+          ...current,
+          ...data,
+          patient_name: data.patientName ?? current.patient_name,
+          body_fat: data.bodyFat ?? current.body_fat,
+          attendance_note: data.attendanceNote ?? current.attendance_note,
+        };
+        saveEvaluation(updated);
+      }
+      return data as Evaluation;
+    };
+
+    if (isMockEnabled()) {
+      return runMockFallback();
+    }
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
+      if (userError || !userData.user) throw new Error('User not authenticated');
+
+      const dbData: any = {};
+      if (data.patientName !== undefined) dbData.patient_name = data.patientName;
+      if (data.gender !== undefined) dbData.gender = data.gender;
+      if (data.weight !== undefined) dbData.weight = data.weight;
+      if (data.height !== undefined) dbData.height = data.height;
+      if (data.age !== undefined) dbData.age = data.age;
+      if (data.objective !== undefined) dbData.objective = data.objective;
+      if (data.waist !== undefined) dbData.waist = data.waist;
+      if (data.abdominal !== undefined) dbData.abdominal = data.abdominal;
+      if (data.neck !== undefined) dbData.neck = data.neck;
+      if (data.skinfolds !== undefined) dbData.skinfolds = { ...data.skinfolds, body_fat: data.bodyFat };
+      if (data.bmi !== undefined) dbData.bmi = data.bmi;
+      if (data.tdee !== undefined) dbData.tdee = data.tdee;
+      if (data.bodyFat !== undefined) dbData.body_fat = data.bodyFat;
+      if (data.attendanceNote !== undefined) dbData.attendance_note = data.attendanceNote;
+      if (data.createdAt !== undefined) dbData.created_at = data.createdAt;
+
+      const { data: updatedEval, error } = await supabase
+        .from('evaluations')
+        .update(dbData)
+        .eq('id', id)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error("Supabase update error:", JSON.stringify(error, null, 2));
+        if (
+          error.message && (
+            error.message.includes('does not exist') ||
+            error.message.includes('schema cache') ||
+            error.message.includes('Could not find')
+          )
+        ) {
+          const { body_fat, attendance_note, ...rest } = dbData;
+          const { data: retryEval, error: retryError } = await supabase
+            .from('evaluations')
+            .update(rest)
+            .eq('id', id)
+            .select()
+            .single();
+            
+          if (retryError) {
+            console.error("Supabase update retry error:", JSON.stringify(retryError, null, 2));
+            throw retryError;
+          }
+          return retryEval;
+        }
+        throw new Error(`Update failed: ${error.message} (Code: ${error.code})`);
+      }
+      return updatedEval;
+    } catch (err: any) {
       return handleFetchError(err, runMockFallback);
     }
   },

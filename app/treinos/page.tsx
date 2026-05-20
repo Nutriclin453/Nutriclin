@@ -162,9 +162,7 @@ export default function Treinos() {
       setPatients(data || []);
     } catch (err: any) {
       console.error(err);
-      if (!String(err?.message || err).toLowerCase().includes('failed to fetch')) {
-        setErrorMsg('Erro ao buscar pacientes.');
-      }
+      setErrorMsg('Erro ao buscar pacientes.');
     } finally {
       setLoadingPatients(false);
     }
@@ -184,9 +182,7 @@ export default function Treinos() {
       }
     } catch (err: any) {
       console.error(err);
-      if (!String(err?.message || err).toLowerCase().includes('failed to fetch')) {
-        setErrorMsg('Erro ao buscar treinos.');
-      }
+      setErrorMsg('Erro ao buscar treinos.');
     } finally {
       setLoadingWorkouts(false);
     }

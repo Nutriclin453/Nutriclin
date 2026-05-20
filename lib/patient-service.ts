@@ -33,6 +33,11 @@ export const PatientService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) throw new Error('User not authenticated');
       
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -98,6 +103,11 @@ export const PatientService = {
 
     try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        if (userError.message && (userError.message.includes('fetch') || userError.message.includes('network'))) {
+          throw userError;
+        }
+      }
       if (userError || !userData.user) return [];
       
       const { data, error } = await supabase
