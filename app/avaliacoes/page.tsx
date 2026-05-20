@@ -10,7 +10,8 @@ import {
   Info,
   Trash2,
   Loader2,
-  TrendingUp
+  TrendingUp,
+  Edit
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -42,6 +43,7 @@ export default function Avaliacoes() {
   const [waist, setWaist] = useState<number | ''>('');
   const [abdominal, setAbdominal] = useState<number | ''>('');
   const [neck, setNeck] = useState<number | ''>('');
+  const [attendanceNote, setAttendanceNote] = useState('');
   
   const [folds, setFolds] = useState<Skinfolds>({});
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
@@ -49,6 +51,7 @@ export default function Avaliacoes() {
   // UI State
   const [loading, setLoading] = useState(false);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [selectedComparisons, setSelectedComparisons] = useState<Evaluation[]>([]);
   const [fetchLoading, setFetchLoading] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(false);
@@ -100,7 +103,10 @@ export default function Avaliacoes() {
       setEvaluations(data || []);
     } catch (error: any) {
       console.error(error);
-      setErrorMsg(error.message || JSON.stringify(error));
+      const msg = error?.message || String(error);
+      if (!msg.toLowerCase().includes('failed to fetch')) {
+        setErrorMsg(msg);
+      }
     } finally {
       setFetchLoading(false);
     }
@@ -113,7 +119,10 @@ export default function Avaliacoes() {
       setPatients(data || []);
     } catch (error: any) {
       console.error("Error fetching patients:", error);
-      setErrorMsg(error.message || JSON.stringify(error));
+      const msg = error?.message || String(error);
+      if (!msg.toLowerCase().includes('failed to fetch')) {
+        setErrorMsg(msg);
+      }
     } finally {
       setLoadingPatients(false);
     }
@@ -170,13 +179,13 @@ export default function Avaliacoes() {
         bmi: Number(bmiValue),
         bodyFat: bodyFatValue !== '--.-' ? Number(bodyFatValue) : undefined,
         tdee: Number(tdeeValue.replace(/\./g, '')),
+        attendanceNote,
         createdAt: selectedDate
       };
       
       await EvaluationService.create(evaluationData);
-      alert('Avaliação salva com sucesso!');
-      fetchEvaluations();
-      // Reset form
+      
+      // Clear form
       setWeight('');
       setHeight('');
       setAge('');
@@ -185,6 +194,11 @@ export default function Avaliacoes() {
       setAbdominal('');
       setNeck('');
       setFolds({});
+      setAttendanceNote('');
+      setSelectedComparisons([]);
+      
+      alert('Avaliação salva com sucesso!');
+      await fetchEvaluations();
     } catch (error) {
       console.error(error);
       alert('Erro ao salvar avaliação.');
@@ -202,6 +216,8 @@ export default function Avaliacoes() {
     setAbdominal('');
     setNeck('');
     setFolds({});
+    setAttendanceNote('');
+    setSelectedComparisons([]);
     setSelectedDate(new Date().toLocaleDateString('en-CA'));
   };
 
@@ -216,6 +232,7 @@ export default function Avaliacoes() {
     setAbdominal(ev.abdominal || '');
     setNeck(ev.neck || '');
     setFolds(ev.skinfolds || {});
+    setAttendanceNote(ev.attendanceNote || '');
   };
 
   const handleDelete = async (id: string | undefined) => {
@@ -231,14 +248,48 @@ export default function Avaliacoes() {
     }
   };
 
+  const handleSelect = (ev: Evaluation) => {
+    let next = [...selectedComparisons];
+    const exists = next.findIndex(e => e.id === ev.id);
+    if (exists !== -1) {
+      next.splice(exists, 1);
+    } else {
+      if (next.length >= 2) next = [next[1], ev];
+      else next.push(ev);
+    }
+    setSelectedComparisons(next);
+    handleLoadEvaluation(ev);
+  };
+
+  const tableEvaluations = React.useMemo(() => {
+    if (!patientName) return [];
+    return evaluations
+      .filter(ev => ev.patientName === patientName)
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt?.toDate?.() || a.createdAt).getTime();
+        const dateB = new Date(b.createdAt?.toDate?.() || b.createdAt).getTime();
+        return dateB - dateA;
+      });
+  }, [evaluations, patientName]);
+
   // Derived data for chart
-  const patientEvaluations = evaluations
-    .filter(ev => ev.patientName === patientName && patientName !== '')
-    .sort((a, b) => {
-      const dateA = a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0;
-      const dateB = b.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : 0;
-      return dateA - dateB;
-    });
+  const patientEvaluations = React.useMemo(() => {
+    if (selectedComparisons.length === 2) {
+      return [...selectedComparisons].sort((a, b) => {
+        const dateA = new Date(a.createdAt?.toDate?.() || a.createdAt).getTime();
+        const dateB = new Date(b.createdAt?.toDate?.() || b.createdAt).getTime();
+        return dateA - dateB;
+      });
+    }
+    
+    return evaluations
+      .filter(ev => ev.patientName === patientName && patientName !== '')
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : 0;
+        return dateA - dateB;
+      });
+  }, [evaluations, patientName, selectedComparisons]);
 
   const chartData = patientEvaluations.map(ev => {
     const dateLabel = ev.createdAt?.toDate?.() 
@@ -391,11 +442,15 @@ export default function Avaliacoes() {
                     >
                       <option value="">Selecione um objetivo...</option>
                       <option value="Hipertrofia">Hipertrofia</option>
+                      <option value="Emagrecimento">Emagrecimento</option>
                       <option value="Perda de Gordura (Cutting)">Perda de Gordura (Cutting)</option>
                       <option value="Recomposição Corporal">Recomposição Corporal</option>
                       <option value="Performance Esportiva">Performance Esportiva</option>
                       <option value="Saúde e Bem-estar (Manutenção)">Saúde e Bem-estar (Manutenção)</option>
                       <option value="Ganho de Peso (Bulking)">Ganho de Peso (Bulking)</option>
+                      {objective && !["", "Hipertrofia", "Emagrecimento", "Perda de Gordura (Cutting)", "Recomposição Corporal", "Performance Esportiva", "Saúde e Bem-estar (Manutenção)", "Ganho de Peso (Bulking)"].includes(objective) && (
+                        <option value={objective}>{objective}</option>
+                      )}
                     </select>
                   </div>
                 </div>
@@ -557,7 +612,12 @@ export default function Avaliacoes() {
                       </div>
                       <div>
                         <h4 className="text-xs font-black text-on-surface uppercase tracking-widest">Nota do Atendimento</h4>
-                        <textarea className="w-full bg-transparent border-none p-0 text-sm text-on-surface-variant h-32 resize-none focus:ring-0 mt-2 font-medium" placeholder="Digite aqui as observações desta sessão..." />
+                        <textarea 
+                          value={attendanceNote}
+                          onChange={(e) => setAttendanceNote(e.target.value)}
+                          className="w-full bg-transparent border-none p-0 text-sm text-on-surface-variant h-32 resize-none focus:ring-0 mt-2 font-medium" 
+                          placeholder="Digite aqui as observações desta sessão..." 
+                        />
                       </div>
                     </div>
                   </div>
@@ -598,49 +658,93 @@ export default function Avaliacoes() {
                             <span className="text-xs font-black uppercase tracking-widest text-on-surface-variant">Carregando histórico...</span>
                           </td>
                         </tr>
-                      ) : evaluations.length === 0 ? (
+                      ) : !patientName ? (
+                        <tr>
+                          <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                            Selecione um paciente para ver o histórico.
+                          </td>
+                        </tr>
+                      ) : tableEvaluations.length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-on-surface-variant uppercase tracking-widest">
                             Nenhuma avaliação encontrada.
                           </td>
                         </tr>
                       ) : (
-                        evaluations.map((ev) => (
-                           <tr 
-                             key={ev.id} 
-                             onClick={() => handleLoadEvaluation(ev)}
-                             className={`hover:bg-primary/5 transition-all group cursor-pointer ${ev.patientName === patientName ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
-                           >
-                            <td className="px-8 py-5 text-sm font-black text-on-surface">{ev.patientName}</td>
-                            <td className="px-8 py-5 text-center text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
-                              {ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString('pt-BR') : 'Nov/24'}
-                            </td>
-                            <td className="px-8 py-5 text-center">
-                              <span className="bg-surface-dim px-3 py-1 rounded-full text-sm font-black text-primary border border-outline-variant">{ev.weight}kg</span>
-                            </td>
-                            <td className="px-8 py-5 text-center">
-                              <span className="text-sm font-black text-on-surface">
-                                {ev.bodyFat !== undefined && ev.bodyFat !== null ? `${Number(ev.bodyFat).toFixed(1)}%` : '--'}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 text-center">
-                              <span className="text-sm font-bold text-primary">
-                                {ev.bmi !== undefined && ev.bmi !== null ? Number(ev.bmi).toFixed(1) : '--.-'}
-                              </span>
-                            </td>
-                            <td className="px-8 py-5 text-right">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(ev.id);
-                                }}
-                                className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
+                        tableEvaluations.map((ev, index) => {
+                          const previousEvaluation = tableEvaluations[index + 1];
+                          const samePatient = !!previousEvaluation;
+                          const isSelected = selectedComparisons.find(e => e.id === ev.id);
+                          
+                          // Weight diff
+                          const weightDiff = (samePatient && typeof ev.weight === 'number' && typeof previousEvaluation.weight === 'number') ? (ev.weight - previousEvaluation.weight) : null;
+                          
+                          // Lean Mass calc: Peso - ((Peso * BF) / 100)
+                          const getLeanMass = (weight: number, bf: number | undefined | null) => {
+                            if (bf === undefined || bf === null) return null;
+                            return weight - ((weight * Number(bf)) / 100);
+                          };
+                          
+                          const evLeanMass = getLeanMass(Number(ev.weight), ev.bodyFat ? Number(ev.bodyFat) : null);
+                          const prevLeanMass = samePatient ? getLeanMass(Number(previousEvaluation.weight), previousEvaluation.bodyFat ? Number(previousEvaluation.bodyFat) : null) : null;
+                          const leanMassDiff = (evLeanMass !== null && prevLeanMass !== null) ? (evLeanMass - prevLeanMass) : null;
+                          
+                          return (
+                            <tr 
+                              key={ev.id} 
+                              onClick={() => handleSelect(ev)}
+                              className={`hover:bg-primary/5 transition-all group cursor-pointer border-l-4 border-transparent ${isSelected ? 'bg-primary/10 border-primary ring-2 ring-primary ring-inset' : ''}`}
+                            >
+                              <td className="px-8 py-5 text-sm font-black text-on-surface">{ev.patientName}</td>
+                              <td className="px-8 py-5 text-center text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
+                                {ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString('pt-BR') : 'Nov/24'}
+                              </td>
+                              <td className="px-8 py-5 text-center">
+                                <span className="bg-surface-dim px-3 py-1 rounded-full text-sm font-black text-primary border border-outline-variant">{ev.weight}kg</span>
+                                {weightDiff !== null && weightDiff !== 0 && (
+                                  <div className={`text-[10px] font-bold mt-1 ${weightDiff > 0 ? 'text-[#4edea3]' : 'text-error'}`}>
+                                    {weightDiff > 0 ? '+' : ''}{weightDiff.toFixed(1)}kg
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-8 py-5 text-center">
+                                <span className="text-sm font-black text-on-surface">
+                                  {ev.bodyFat !== undefined && ev.bodyFat !== null ? `${Number(ev.bodyFat).toFixed(1)}%` : '--'}
+                                </span>
+                                {leanMassDiff !== null && leanMassDiff !== 0 && (
+                                  <div className={`text-[10px] font-bold mt-1 ${leanMassDiff > 0 ? 'text-[#4edea3]' : 'text-error'}`}>
+                                    {leanMassDiff > 0 ? '+' : ''}{leanMassDiff.toFixed(1)}kg
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-8 py-5 text-center">
+                                <span className="text-sm font-bold text-primary">
+                                  {ev.bmi !== undefined && ev.bmi !== null ? Number(ev.bmi).toFixed(1) : '--.-'}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLoadEvaluation(ev);
+                                  }}
+                                  className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                                >
+                                  <Edit size={16} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(ev.id);
+                                  }}
+                                  className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                    </table>

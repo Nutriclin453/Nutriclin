@@ -52,6 +52,7 @@ export interface Evaluation {
   bmi: number;
   bodyFat?: number;
   tdee: number;
+  attendanceNote?: string;
   createdBy?: string;
   createdAt?: any;
 }
@@ -83,6 +84,7 @@ export const EvaluationService = {
         bmi: Number(data.bmi),
         body_fat: data.bodyFat,
         tdee: Number(data.tdee),
+        attendance_note: data.attendanceNote,
         created_by: '1'
       });
       return {
@@ -100,6 +102,7 @@ export const EvaluationService = {
         bmi: saved.bmi,
         bodyFat: saved.body_fat,
         tdee: saved.tdee,
+        attendanceNote: saved.attendance_note,
         createdBy: saved.created_by,
         createdAt: saved.created_at ? { toDate: () => new Date(saved.created_at) } : null
       } as Evaluation;
@@ -129,6 +132,7 @@ export const EvaluationService = {
         bmi: data.bmi,
         tdee: data.tdee,
         body_fat: data.bodyFat,
+        attendance_note: data.attendanceNote,
         created_by: userData.user.id,
         created_at: data.createdAt
       };
@@ -191,6 +195,7 @@ export const EvaluationService = {
             )
           ),
         tdee: e.tdee,
+        attendanceNote: e.attendance_note,
         createdBy: e.created_by,
         createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
       })) as unknown as Evaluation[];
@@ -238,6 +243,7 @@ export const EvaluationService = {
             )
           ),
         tdee: e.tdee,
+        attendanceNote: e.attendance_note,
         createdBy: e.created_by,
         createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
       })) as unknown as Evaluation[];

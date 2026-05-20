@@ -457,10 +457,12 @@ export default function Dieta() {
         setMeals(getDefaultMeals());
       }
     } catch (err: any) {
-      setErrorMsg(
-        err.message ||
-          "Erro ao buscar dieta. Se a tabela não existir, crie a migration.",
-      );
+      if (!String(err?.message || err).toLowerCase().includes('failed to fetch')) {
+        setErrorMsg(
+          err.message ||
+            "Erro ao buscar dieta. Se a tabela não existir, crie a migration.",
+        );
+      }
       resetDiet();
     } finally {
       setLoadingDiet(false);

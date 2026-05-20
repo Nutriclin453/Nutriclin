@@ -31,7 +31,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const hasEnv = process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+    const hasEnv = process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
+                   process.env.NEXT_PUBLIC_SUPABASE_URL !== '' && 
+                   !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co');
     if (!hasEnv) {
       if (typeof window !== 'undefined') {
         try {
@@ -90,7 +92,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     
     // Check if using placeholder supabase
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL === '' || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')) {
       // Mock login
       await new Promise(resolve => setTimeout(resolve, 500));
       const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
@@ -132,7 +136,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const registerWithEmail = async (email: string, pass: string) => {
     setLoading(true);
 
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL === '' || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')) {
       await new Promise(resolve => setTimeout(resolve, 500));
       const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
       const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
@@ -171,7 +177,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSystemLogout = async () => {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL === '' || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')) {
       setUser(null);
       setSession(null);
       if (typeof window !== 'undefined') {
