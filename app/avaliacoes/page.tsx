@@ -10,8 +10,18 @@ import {
   Info,
   Trash2,
   Loader2,
-  Lock
+  TrendingUp
 } from 'lucide-react';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  TooltipProps
+} from 'recharts';
 import { EvaluationService, Skinfolds, Evaluation } from '@/lib/evaluation-service';
 import { Patient, PatientService } from '@/lib/patient-service';
 import { useAuth } from '@/components/supabase-provider';
@@ -33,8 +43,8 @@ export default function Avaliacoes() {
   const [abdominal, setAbdominal] = useState<number | ''>('');
   const [neck, setNeck] = useState<number | ''>('');
   
-  // Skinfolds State
   const [folds, setFolds] = useState<Skinfolds>({});
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
 
   // UI State
   const [loading, setLoading] = useState(false);
@@ -122,22 +132,28 @@ export default function Avaliacoes() {
       return;
     }
     
-    setLoading(true);
     try {
+      setLoading(true);
       // Gerar PDF localmente usando html2pdf
       const element = document.getElementById('evaluation-form');
       if (element) {
-        // O import dinâmico evita erros no SSR (Server Side Rendering) do Next.js
-        const html2pdf = (await import('html2pdf.js')).default;
-        const opt = {
-          margin:       [15, 15, 15, 15] as [number, number, number, number],
-          filename:     `avaliacao_${patientName || 'paciente'}.pdf`,
-          image:        { type: 'jpeg' as const, quality: 1 },
-          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
-          html2canvas:  { scale: 3, useCORS: true, letterRendering: true, windowWidth: 1200 },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-        };
-        html2pdf().set(opt).from(element).save();
+        try {
+          // O import dinâmico evita erros no SSR (Server Side Rendering) do Next.js
+          const html2pdf = (await import('html2pdf.js')).default;
+          const opt = {
+            margin:       [15, 15, 15, 15] as [number, number, number, number],
+            filename:     `avaliacao_${patientName || 'paciente'}.pdf`,
+            image:        { type: 'jpeg' as const, quality: 1 },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true, windowWidth: 1200, logging: false },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+          };
+          await html2pdf().set(opt).from(element).save();
+        } catch (pdfErr) {
+          console.error('PDF Generation Error:', pdfErr);
+          // Don't block the save if only PDF fails, but notify user
+          alert('Aviso: O PDF não pôde ser gerado, mas os dados serão salvos no banco.');
+        }
       }
 
       const evaluationData = {
@@ -153,7 +169,8 @@ export default function Avaliacoes() {
         skinfolds: folds,
         bmi: Number(bmiValue),
         bodyFat: bodyFatValue !== '--.-' ? Number(bodyFatValue) : undefined,
-        tdee: Number(tdeeValue.replace(/\./g, ''))
+        tdee: Number(tdeeValue.replace(/\./g, '')),
+        createdAt: selectedDate
       };
       
       await EvaluationService.create(evaluationData);
@@ -176,16 +193,94 @@ export default function Avaliacoes() {
     }
   };
 
+  const handleClearForm = () => {
+    setWeight('');
+    setHeight('');
+    setAge('');
+    setObjective('');
+    setWaist('');
+    setAbdominal('');
+    setNeck('');
+    setFolds({});
+    setSelectedDate(new Date().toLocaleDateString('en-CA'));
+  };
+
+  const handleLoadEvaluation = (ev: Evaluation) => {
+    setPatientName(ev.patientName || '');
+    setGender(ev.gender || 'male');
+    setWeight(ev.weight || '');
+    setHeight(ev.height || '');
+    setAge(ev.age || '');
+    setObjective(ev.objective || '');
+    setWaist(ev.waist || '');
+    setAbdominal(ev.abdominal || '');
+    setNeck(ev.neck || '');
+    setFolds(ev.skinfolds || {});
+  };
+
   const handleDelete = async (id: string | undefined) => {
     if (!id) return;
     if (!confirm('Deseja excluir esta avaliação?')) return;
     
     try {
       await EvaluationService.delete(id);
+      setEvaluations(prev => prev.filter(ev => ev.id !== id));
       fetchEvaluations();
     } catch (error) {
       console.error(error);
     }
+  };
+
+  // Derived data for chart
+  const patientEvaluations = evaluations
+    .filter(ev => ev.patientName === patientName && patientName !== '')
+    .sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0;
+      const dateB = b.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : 0;
+      return dateA - dateB;
+    });
+
+  const chartData = patientEvaluations.map(ev => {
+    const dateLabel = ev.createdAt?.toDate?.() 
+      ? (() => {
+          const d = ev.createdAt.toDate();
+          const day = d.getDate().toString().padStart(2, '0');
+          const month = d.toLocaleDateString('pt-BR', { month: 'short' }).slice(0, 3);
+          const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+          return `${day}/${formattedMonth}`;
+        })()
+      : 'Nov';
+    return {
+      date: dateLabel,
+      peso: ev.weight,
+      bf: ev.bodyFat !== undefined && ev.bodyFat !== null ? Number(Number(ev.bodyFat).toFixed(1)) : 0,
+      fullDate: ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString('pt-BR') : ''
+    };
+  });
+
+  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-surface-dim border border-outline-variant p-4 rounded-xl shadow-2xl backdrop-blur-md">
+          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-2 border-b border-outline-variant pb-1">
+            {label} | Extrato
+          </p>
+          <div className="space-y-1">
+            {payload.map((entry, index) => (
+              <div key={index} className="flex items-center justify-between gap-4">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: entry.color }}>
+                  {entry.name}
+                </span>
+                <span className="text-sm font-black text-on-surface">
+                  {entry.value}{entry.name === 'Peso' ? 'kg' : '%'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return null;
   };
 
   const handleFoldChange = (field: keyof Skinfolds, value: string) => {
@@ -218,14 +313,24 @@ export default function Avaliacoes() {
                 <h1 className="text-3xl font-bold text-on-surface">Formulário de Avaliação Nutricional</h1>
                 <p className="text-on-surface-variant text-sm mt-1">Registre uma nova sessão antropométrica e de composição corporal.</p>
               </div>
-              <button 
-                onClick={handleSave}
-                disabled={loading}
-                className="bg-primary px-6 py-3 rounded-xl text-on-primary font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
-              >
-                {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-                Salvar Avaliação
-              </button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleClearForm}
+                  type="button"
+                  className="bg-surface-container-high border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-bold hover:bg-surface-dim active:scale-95 transition-all flex items-center gap-2"
+                >
+                  <RefreshCw size={20} className="text-on-surface-variant" />
+                  Limpar Campos
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="bg-primary px-6 py-3 rounded-xl text-on-primary font-bold hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                  Salvar Avaliação
+                </button>
+              </div>
             </div>
 
             {errorMsg && (
@@ -247,7 +352,10 @@ export default function Avaliacoes() {
                     <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Seleção do Paciente</label>
                     <select 
                       value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
+                      onChange={(e) => {
+                        setPatientName(e.target.value);
+                        handleClearForm();
+                      }}
                       className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none disabled:opacity-50"
                       disabled={loadingPatients}
                     >
@@ -322,7 +430,12 @@ export default function Avaliacoes() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Data</label>
-                    <input className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface outline-none focus:border-primary transition-all" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                    <input 
+                      className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface outline-none focus:border-primary transition-all" 
+                      type="date" 
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -390,63 +503,6 @@ export default function Avaliacoes() {
                     ))}
                   </div>
                 </div>
-
-                <div data-html2canvas-ignore="true" className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden">
-                  <div className="p-4 md:p-6 border-b border-outline-variant flex justify-between items-center">
-                    <h3 className="text-lg md:text-xl font-bold text-on-surface">Histórico Recente</h3>
-                    <button onClick={fetchEvaluations} className="text-primary hover:rotate-180 transition-transform duration-500">
-                      <RefreshCw size={18} />
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                     <table className="w-full text-left">
-                      <thead className="bg-surface-dim/50 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
-                        <tr>
-                          <th className="px-6 py-4">Paciente</th>
-                          <th className="px-6 py-4">Data</th>
-                          <th className="px-6 py-4">IMC</th>
-                          <th className="px-6 py-4">Peso</th>
-                          <th className="px-6 py-4 text-right">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-outline-variant">
-                        {fetchLoading ? (
-                          <tr>
-                            <td colSpan={5} className="px-6 py-10 text-center">
-                              <Loader2 className="animate-spin text-primary inline mr-2" size={20} />
-                              Carregando histórico...
-                            </td>
-                          </tr>
-                        ) : evaluations.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="px-6 py-10 text-center text-sm text-on-surface-variant">
-                              Nenhuma avaliação encontrada.
-                            </td>
-                          </tr>
-                        ) : (
-                          evaluations.map((ev) => (
-                             <tr key={ev.id} className="hover:bg-surface-container-high/30 transition-colors group">
-                              <td className="px-6 py-4 text-sm font-medium">{ev.patientName}</td>
-                              <td className="px-6 py-4 text-xs text-on-surface-variant">
-                                {ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString() : 'Recent'}
-                              </td>
-                              <td className="px-6 py-4 text-sm font-bold text-primary">{ev.bmi}</td>
-                              <td className="px-6 py-4 text-sm">{ev.weight}kg</td>
-                              <td className="px-6 py-4 text-right">
-                                <button 
-                                  onClick={() => handleDelete(ev.id)}
-                                  className="p-2 text-on-surface-variant hover:text-error transition-colors"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                     </table>
-                  </div>
-                </div>
               </div>
 
               <div className="md:col-span-4 space-y-8">
@@ -488,7 +544,12 @@ export default function Avaliacoes() {
                   </div>
 
                   <div className="bg-surface-container border border-outline-variant p-6 rounded-3xl relative overflow-hidden group">
-                    <img src={MOTIVATION_IMAGE} className="absolute inset-0 w-full h-full object-cover opacity-20 filter grayscale group-hover:scale-110 transition-transform duration-700" alt="" />
+                    <img 
+                      src={MOTIVATION_IMAGE} 
+                      className="absolute inset-0 w-full h-full object-cover opacity-20 filter grayscale group-hover:scale-110 transition-transform duration-700" 
+                      alt="" 
+                      referrerPolicy="no-referrer"
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-surface-container via-[#171f33cc] to-transparent" />
                     <div className="relative z-10 space-y-4">
                       <div className="p-2 bg-[#4edea333] w-fit rounded-lg">
@@ -500,6 +561,185 @@ export default function Avaliacoes() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Evolution Grid - History and Chart */}
+            <div data-html2canvas-ignore="true" className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12 pb-20">
+              {/* History Table Column */}
+              <div className="bg-surface-container rounded-3xl border border-outline-variant overflow-hidden shadow-xl flex flex-col">
+                <div className="p-6 md:p-8 border-b border-outline-variant flex justify-between items-center bg-surface-container-high/20">
+                  <div>
+                    <h3 className="text-xl font-black text-on-surface tracking-tight uppercase">Histórico Recente</h3>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mt-1">Sessões Anteriores</p>
+                  </div>
+                  <button onClick={fetchEvaluations} className="text-primary hover:rotate-180 transition-transform duration-500 bg-surface-dim p-2 rounded-full border border-outline-variant">
+                    <RefreshCw size={18} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-x-auto overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-outline-variant">
+                   <table className="w-full text-left">
+                    <thead className="bg-surface-dim/80 backdrop-blur-sm sticky top-0 z-10 text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
+                      <tr>
+                        <th className="px-8 py-4">Paciente</th>
+                        <th className="px-8 py-4 text-center">Data</th>
+                        <th className="px-8 py-4 text-center">Peso</th>
+                        <th className="px-8 py-4 text-center">% BF</th>
+                        <th className="px-8 py-4 text-center">IMC</th>
+                        <th className="px-8 py-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant">
+                      {fetchLoading ? (
+                        <tr>
+                          <td colSpan={6} className="px-8 py-20 text-center">
+                            <Loader2 className="animate-spin text-primary inline mr-2" size={20} />
+                            <span className="text-xs font-black uppercase tracking-widest text-on-surface-variant">Carregando histórico...</span>
+                          </td>
+                        </tr>
+                      ) : evaluations.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                            Nenhuma avaliação encontrada.
+                          </td>
+                        </tr>
+                      ) : (
+                        evaluations.map((ev) => (
+                           <tr 
+                             key={ev.id} 
+                             onClick={() => handleLoadEvaluation(ev)}
+                             className={`hover:bg-primary/5 transition-all group cursor-pointer ${ev.patientName === patientName ? 'bg-primary/10 border-l-4 border-primary' : ''}`}
+                           >
+                            <td className="px-8 py-5 text-sm font-black text-on-surface">{ev.patientName}</td>
+                            <td className="px-8 py-5 text-center text-[10px] font-black text-on-surface-variant uppercase tracking-widest">
+                              {ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString('pt-BR') : 'Nov/24'}
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <span className="bg-surface-dim px-3 py-1 rounded-full text-sm font-black text-primary border border-outline-variant">{ev.weight}kg</span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <span className="text-sm font-black text-on-surface">
+                                {ev.bodyFat !== undefined && ev.bodyFat !== null ? `${Number(ev.bodyFat).toFixed(1)}%` : '--'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <span className="text-sm font-bold text-primary">
+                                {ev.bmi !== undefined && ev.bmi !== null ? Number(ev.bmi).toFixed(1) : '--.-'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(ev.id);
+                                }}
+                                className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                   </table>
+                </div>
+              </div>
+
+              {/* Chart Column */}
+              <div className="bg-surface-container rounded-3xl border border-outline-variant p-6 md:p-8 flex flex-col shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-10 opacity-5 -mr-10 -mt-10 group-hover:scale-125 transition-transform duration-700">
+                  <TrendingUp size={240} />
+                </div>
+                
+                <div className="relative z-10 flex justify-between items-start mb-8">
+                  <div>
+                    <h3 className="text-xl font-black text-on-surface uppercase tracking-tight">Evolução do Paciente</h3>
+                    <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em] mt-1">Progresso Antropométrico</p>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(78,222,163,0.5)]" />
+                       <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Peso</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                       <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">% BF</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 w-full min-h-[300px]">
+                  {chartData.length < 2 ? (
+                    <div className="h-full flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-outline-variant rounded-2xl bg-surface-dim/30">
+                      <TrendingUp size={40} className="text-on-surface-variant opacity-20" />
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] text-center max-w-[200px]">
+                        {patientName ? 'Registre mais avaliações para visualizar a curva de evolução.' : 'Selecione um paciente para ver os dados de evolução.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 10, right: -5, left: -25, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#4edea3" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#4edea3" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorBF" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff0a" />
+                        <XAxis 
+                          dataKey="date" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }}
+                          dy={15}
+                        />
+                        <YAxis 
+                          yAxisId="left"
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#4edea3', fontSize: 10, fontWeight: 900 }} 
+                          domain={['auto', 'auto']}
+                        />
+                        <YAxis 
+                          yAxisId="right"
+                          orientation="right"
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fill: '#3b82f6', fontSize: 10, fontWeight: 900 }} 
+                          domain={[0, 30]}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area 
+                          yAxisId="left"
+                          name="Peso"
+                          type="monotone" 
+                          dataKey="peso" 
+                          stroke="#4edea3" 
+                          strokeWidth={4}
+                          fillOpacity={1} 
+                          fill="url(#colorPeso)" 
+                          activeDot={{ r: 8, stroke: '#111827', strokeWidth: 2, fill: '#4edea3' }}
+                        />
+                        <Area 
+                          yAxisId="right"
+                          name="% BF"
+                          type="monotone" 
+                          dataKey="bf" 
+                          stroke="#3b82f6" 
+                          strokeWidth={4}
+                          fillOpacity={1} 
+                          fill="url(#colorBF)" 
+                          activeDot={{ r: 8, stroke: '#111827', strokeWidth: 2, fill: '#3b82f6' }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>

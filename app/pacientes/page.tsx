@@ -7,14 +7,13 @@ import {
   Search, 
   Plus, 
   Filter, 
-  MoreVertical,
-  Mail,
-  Phone,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Edit,
-  Trash2
+  Mail, 
+  Phone, 
+  Calendar, 
+  CheckCircle2, 
+  Clock, 
+  Edit, 
+  Trash2 
 } from 'lucide-react';
 import { Patient, PatientService } from '@/lib/patient-service';
 import { PatientModal } from '@/components/patient-modal';
@@ -197,12 +196,32 @@ export default function Pacientes() {
                           {patient.status}
                         </div>
                       </td>
-                      <td className="px-4 lg:px-8 py-6 text-right">
+                      <td className="px-4 lg:px-8 py-6 text-right flex items-center justify-end gap-1">
                         <button 
                           onClick={() => handleEdit(patient)}
                           className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                          title="Editar Paciente"
                         >
                           <Edit size={18} />
+                        </button>
+                        
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm(`Deseja realmente excluir o paciente ${patient.name} e todo o seu histórico de consultas?`)) {
+                              try {
+                                await PatientService.delete(patient.id);
+                                fetchPatients();
+                              } catch (err) {
+                                alert('Erro ao excluir o paciente.');
+                                console.error(err);
+                              }
+                            }
+                          }}
+                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-all"
+                          title="Excluir Paciente"
+                        >
+                          <Trash2 size={18} />
                         </button>
                       </td>
                     </tr>

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { setForceMock } from '@/lib/mock-db';
 
 interface AuthContextType {
   user: User | null;
@@ -30,9 +31,49 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const hasEnv = process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+    if (!hasEnv) {
+      if (typeof window !== 'undefined') {
+        try {
+          const storedUserJson = localStorage.getItem('mock_user_session');
+          if (storedUserJson) {
+            const parsed = JSON.parse(storedUserJson);
+            setUser(parsed.user || null);
+            setSession(parsed || null);
+          } else {
+            setUser(null);
+            setSession(null);
+          }
+        } catch (e) {
+          console.error('Error loading mock user session:', e);
+        }
+      }
+      setLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((err) => {
+      console.error('Error in getSession, setting forceMock:', err);
+      const msg = err.message || String(err);
+      if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
+        setForceMock(true);
+        if (typeof window !== 'undefined') {
+          try {
+            const storedUserJson = localStorage.getItem('mock_user_session');
+            if (storedUserJson) {
+              const parsed = JSON.parse(storedUserJson);
+              setUser(parsed.user || null);
+              setSession(parsed || null);
+            }
+          } catch (e) {
+            console.error('Error loading mock user session in getSession fallback:', e);
+          }
+        }
+      }
       setLoading(false);
     });
 
@@ -56,14 +97,36 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
       setUser(mockUser);
       setSession(mockSession);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mock_user_session', JSON.stringify(mockSession));
+      }
       setLoading(false);
       return mockUser;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    setLoading(false);
-    if (error) throw error;
-    return data.user;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      setLoading(false);
+      if (error) throw error;
+      return data.user;
+    } catch (err: any) {
+      const msg = err.message || String(err);
+      if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
+        console.warn('Login connection failed. Falling back to mock authentication.', err);
+        setForceMock(true);
+        const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
+        const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
+        setUser(mockUser);
+        setSession(mockSession);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mock_user_session', JSON.stringify(mockSession));
+        }
+        setLoading(false);
+        return mockUser;
+      }
+      setLoading(false);
+      throw err;
+    }
   };
 
   const registerWithEmail = async (email: string, pass: string) => {
@@ -75,20 +138,45 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
       setUser(mockUser);
       setSession(mockSession);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('mock_user_session', JSON.stringify(mockSession));
+      }
       setLoading(false);
       return mockUser;
     }
 
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
-    setLoading(false);
-    if (error) throw error;
-    return data.user;
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password: pass });
+      setLoading(false);
+      if (error) throw error;
+      return data.user;
+    } catch (err: any) {
+      const msg = err.message || String(err);
+      if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
+        console.warn('Registration connection failed. Falling back to mock authentication.', err);
+        setForceMock(true);
+        const mockUser = { id: '1', email, app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as User;
+        const mockSession = { user: mockUser, access_token: 'mock', refresh_token: 'mock', expires_in: 3600, expires_at: 0, token_type: 'bearer' } as Session;
+        setUser(mockUser);
+        setSession(mockSession);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('mock_user_session', JSON.stringify(mockSession));
+        }
+        setLoading(false);
+        return mockUser;
+      }
+      setLoading(false);
+      throw err;
+    }
   };
 
   const handleSystemLogout = async () => {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || process.env.NEXT_PUBLIC_SUPABASE_URL === '') {
       setUser(null);
       setSession(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('mock_user_session');
+      }
       return;
     }
     await supabase.auth.signOut();

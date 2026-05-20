@@ -28,6 +28,7 @@ CREATE TABLE evaluations (
   skinfolds JSONB,
   bmi NUMERIC,
   tdee NUMERIC,
+  body_fat NUMERIC,
   created_by UUID NOT NULL REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

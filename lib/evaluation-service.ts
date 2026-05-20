@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isMockEnabled, getEvaluations, saveEvaluation, deleteEvaluation, setForceMock } from './mock-db';
 
 export interface Skinfolds {
   tricipital?: number;
@@ -8,6 +9,32 @@ export interface Skinfolds {
   abdomen?: number;
   suprailiaca?: number;
   coxa?: number;
+}
+
+export function calculatePollock7FromFields(skinfolds: any, age: any, gender: string): number | undefined {
+  if (!skinfolds || !age) return undefined;
+  const tricipital = Number(skinfolds.tricipital);
+  const subescapular = Number(skinfolds.subescapular);
+  const subaxilar = Number(skinfolds.subaxilar);
+  const peitoral = Number(skinfolds.peitoral);
+  const abdomen = Number(skinfolds.abdomen);
+  const suprailiaca = Number(skinfolds.suprailiaca);
+  const coxa = Number(skinfolds.coxa);
+  const numAge = Number(age);
+
+  if (tricipital && subescapular && subaxilar && peitoral && abdomen && suprailiaca && coxa && numAge) {
+    const sum7 = tricipital + subescapular + subaxilar + peitoral + abdomen + suprailiaca + coxa;
+    const isMale = String(gender).toLowerCase() === 'male' || String(gender).toLowerCase().startsWith('masc');
+    let density;
+    if (isMale) {
+      density = 1.112 - (0.00043499 * sum7) + (0.00000055 * sum7 * sum7) - (0.00028826 * numAge);
+    } else {
+      density = 1.097 - (0.00046971 * sum7) + (0.00000056 * sum7 * sum7) - (0.00012828 * numAge);
+    }
+    const bf = ((4.95 / density) - 4.50) * 100;
+    return Number(bf.toFixed(1));
+  }
+  return undefined;
 }
 
 export interface Evaluation {
@@ -29,85 +56,216 @@ export interface Evaluation {
   createdAt?: any;
 }
 
+const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
+  const msg = error.message || String(error);
+  if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
+    console.warn('Network or fetch error detected with Supabase. Switching to local mock state.', error);
+    setForceMock(true);
+    return fallback();
+  }
+  throw error;
+};
+
 export const EvaluationService = {
   async create(data: Omit<Evaluation, 'createdBy' | 'createdAt'>) {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) throw new Error('User not authenticated');
-    
-    // Transform JS camelCase to snake_case for Supabase
-    const dbData = {
-      patient_name: data.patientName,
-      gender: data.gender,
-      weight: data.weight,
-      height: data.height,
-      age: data.age,
-      objective: data.objective,
-      waist: data.waist,
-      abdominal: data.abdominal,
-      neck: data.neck,
-      skinfolds: data.skinfolds,
-      bmi: data.bmi,
-      tdee: data.tdee,
-      created_by: userData.user.id
+    const runMockFallback = () => {
+      const saved = saveEvaluation({
+        patient_name: data.patientName,
+        gender: data.gender,
+        weight: Number(data.weight),
+        height: Number(data.height),
+        age: Number(data.age),
+        objective: data.objective,
+        waist: Number(data.waist),
+        abdominal: Number(data.abdominal),
+        neck: Number(data.neck),
+        skinfolds: data.skinfolds,
+        bmi: Number(data.bmi),
+        body_fat: data.bodyFat,
+        tdee: Number(data.tdee),
+        created_by: '1'
+      });
+      return {
+        id: saved.id,
+        patientName: saved.patient_name,
+        gender: saved.gender,
+        weight: saved.weight,
+        height: saved.height,
+        age: saved.age,
+        objective: saved.objective,
+        waist: saved.waist,
+        abdominal: saved.abdominal,
+        neck: saved.neck,
+        skinfolds: saved.skinfolds || {},
+        bmi: saved.bmi,
+        bodyFat: saved.body_fat,
+        tdee: saved.tdee,
+        createdBy: saved.created_by,
+        createdAt: saved.created_at ? { toDate: () => new Date(saved.created_at) } : null
+      } as Evaluation;
     };
 
-    const { data: newEval, error } = await supabase
-      .from('evaluations')
-      .insert([dbData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase Error (create eval):', error);
-      throw new Error(error.message || JSON.stringify(error));
+    if (isMockEnabled()) {
+      return runMockFallback();
     }
-    return newEval;
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) throw new Error('User not authenticated');
+      
+      // Transform JS camelCase to snake_case for Supabase
+      // We also duplicate body_fat into skinfolds so we have a solid JSON fallback
+      const dbData: any = {
+        patient_name: data.patientName,
+        gender: data.gender,
+        weight: data.weight,
+        height: data.height,
+        age: data.age,
+        objective: data.objective,
+        waist: data.waist,
+        abdominal: data.abdominal,
+        neck: data.neck,
+        skinfolds: { ...data.skinfolds, body_fat: data.bodyFat },
+        bmi: data.bmi,
+        tdee: data.tdee,
+        body_fat: data.bodyFat,
+        created_by: userData.user.id,
+        created_at: data.createdAt
+      };
+
+      const { data: newEval, error } = await supabase
+        .from('evaluations')
+        .insert([dbData])
+        .select()
+        .single();
+
+      if (error) {
+        // Fallback if body_fat column doesn't exist in user's current schema or schema cache is stale
+        if (
+          error.message.includes('body_fat') &&
+          (error.message.includes('does not exist') ||
+           error.message.includes('schema cache') ||
+           error.message.includes('Could not find'))
+        ) {
+          const { body_fat, ...rest } = dbData;
+          const { data: retryEval, error: retryError } = await supabase
+            .from('evaluations')
+            .insert([rest])
+            .select()
+            .single();
+            
+          if (retryError) throw retryError;
+          return retryEval;
+        }
+        throw error;
+      }
+      return newEval;
+    } catch (err: any) {
+      return handleFetchError(err, runMockFallback);
+    }
   },
 
   async getAll() {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return [];
-    
-    const { data, error } = await supabase
-      .from('evaluations')
-      .select('*')
-      .eq('created_by', userData.user.id)
-      .order('created_at', { ascending: false });
+    const runMockFallback = () => {
+      const listData = getEvaluations();
+      return (listData || []).map(e => ({
+        id: e.id,
+        patientName: e.patient_name,
+        gender: e.gender,
+        weight: e.weight,
+        height: e.height,
+        age: e.age,
+        objective: e.objective,
+        waist: e.waist,
+        abdominal: e.abdominal,
+        neck: e.neck,
+        skinfolds: e.skinfolds || {},
+        bmi: e.bmi,
+        bodyFat: e.body_fat !== undefined && e.body_fat !== null 
+          ? Number(e.body_fat) 
+          : (e.skinfolds?.body_fat !== undefined && e.skinfolds?.body_fat !== null
+            ? Number(e.skinfolds.body_fat)
+            : (e.skinfolds?.bodyFat !== undefined && e.skinfolds?.bodyFat !== null
+              ? Number(e.skinfolds.bodyFat)
+              : calculatePollock7FromFields(e.skinfolds, e.age, e.gender)
+            )
+          ),
+        tdee: e.tdee,
+        createdBy: e.created_by,
+        createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
+      })) as unknown as Evaluation[];
+    };
 
-    if (error) {
-      console.error('Supabase Error (getAll evals):', error);
-      const msg = error.message || JSON.stringify(error);
-      throw new Error(msg === 'Failed to fetch' ? 'Failed to fetch (Falha na conexão). Verifique se sua variável NEXT_PUBLIC_SUPABASE_URL está correta e com https://' : msg);
+    if (isMockEnabled()) {
+      return runMockFallback();
     }
-    
-    return (data || []).map(e => ({
-      id: e.id,
-      patientName: e.patient_name,
-      gender: e.gender,
-      weight: e.weight,
-      height: e.height,
-      age: e.age,
-      objective: e.objective,
-      waist: e.waist,
-      abdominal: e.abdominal,
-      neck: e.neck,
-      skinfolds: e.skinfolds || {},
-      bmi: e.bmi,
-      tdee: e.tdee,
-      createdBy: e.created_by,
-      createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
-    })) as unknown as Evaluation[];
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) return [];
+      
+      const { data, error } = await supabase
+        .from('evaluations')
+        .select('*')
+        .eq('created_by', userData.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase Error (getAll evals):', error);
+        throw error;
+      }
+      
+      return (data || []).map(e => ({
+        id: e.id,
+        patientName: e.patient_name,
+        gender: e.gender,
+        weight: e.weight,
+        height: e.height,
+        age: e.age,
+        objective: e.objective,
+        waist: e.waist,
+        abdominal: e.abdominal,
+        neck: e.neck,
+        skinfolds: e.skinfolds || {},
+        bmi: e.bmi,
+        bodyFat: e.body_fat !== undefined && e.body_fat !== null 
+          ? Number(e.body_fat) 
+          : (e.skinfolds?.body_fat !== undefined && e.skinfolds?.body_fat !== null
+            ? Number(e.skinfolds.body_fat)
+            : (e.skinfolds?.bodyFat !== undefined && e.skinfolds?.bodyFat !== null
+              ? Number(e.skinfolds.bodyFat)
+              : calculatePollock7FromFields(e.skinfolds, e.age, e.gender)
+            )
+          ),
+        tdee: e.tdee,
+        createdBy: e.created_by,
+        createdAt: e.created_at ? { toDate: () => new Date(e.created_at) } : null
+      })) as unknown as Evaluation[];
+    } catch (err) {
+      return handleFetchError(err, runMockFallback);
+    }
   },
 
   async delete(id: string) {
-    const { error } = await supabase
-      .from('evaluations')
-      .delete()
-      .eq('id', id);
+    if (isMockEnabled()) {
+      deleteEvaluation(id);
+      return;
+    }
 
-    if (error) {
-      console.error('Supabase Error (delete eval):', error);
-      throw new Error(error.message || JSON.stringify(error));
+    try {
+      const { error } = await supabase
+        .from('evaluations')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Supabase Error (delete eval):', error);
+        throw new Error(error.message || JSON.stringify(error));
+      }
+    } catch (err) {
+      return handleFetchError(err, () => {
+        deleteEvaluation(id);
+      });
     }
   }
 };
