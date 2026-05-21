@@ -21,6 +21,12 @@ ON public.leads FOR INSERT
 TO anon, authenticated 
 WITH CHECK (true);
 
+-- Allow public select on the specific metadata row in leads to register dynamic nutritionist ID
+CREATE POLICY "Allow public select on metadata leads" 
+ON public.leads FOR SELECT 
+TO anon, authenticated 
+USING (name = '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__');
+
 -- Allow authenticated users (nutritionist) to select/delete leads
 CREATE POLICY "Allow authenticated select on leads" 
 ON public.leads FOR SELECT 

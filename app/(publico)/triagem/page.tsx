@@ -495,7 +495,7 @@ export default function TriagemPage() {
                     {loading ? (
                       <div className="flex items-center justify-center gap-2 py-4 text-slate-400 font-bold text-xs uppercase tracking-widest bg-slate-950 rounded-xl">
                         <Loader2 size={18} className="animate-spin text-primary" />
-                        GAVANDO SEUS DADOS...
+                        GRAVANDO SEUS DADOS...
                       </div>
                     ) : (
                       <button

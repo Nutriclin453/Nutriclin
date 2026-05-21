@@ -44,15 +44,25 @@ export const PatientService = {
       }
       if (userError || !userData.user) throw new Error('User not authenticated');
       
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { birthDate, lastVisit, ...restData } = data;
 
       const payload: any = {
-        ...restData,
-        birth_date: birthDate,
-        last_visit: lastVisit,
+        name: data.name,
+        email: data.email || '',
+        phone: data.phone || '',
+        goal: data.goal || 'Saúde',
+        status: data.status || 'Ativo',
         created_by: userData.user.id
       };
+
+      // Add extra columns if they are supported by the database
+      if (data.weight !== undefined) payload.weight = data.weight;
+      if (data.height !== undefined) payload.height = data.height;
+      if (data.idade !== undefined) payload.idade = data.idade;
+      if (data.age !== undefined) payload.age = data.age;
+      if (birthDate !== undefined) payload.birth_date = birthDate;
+      if (lastVisit !== undefined) payload.last_visit = lastVisit;
+      if (data.gender !== undefined) payload.gender = data.gender;
 
       const { data: newPatient, error } = await supabase
         .from('patients')
@@ -63,8 +73,15 @@ export const PatientService = {
       if (error) {
         const isColumnError = error.message?.includes('column') || error.code === '42703';
         if (isColumnError) {
-          console.warn('Patient creation failed with full columns, trying without weight/height...', error);
-          const { weight, height, ...cleanPayload } = payload;
+          console.warn('Patient creation failed with full columns, trying minimal subset...', error);
+          const cleanPayload: any = {
+            name: data.name,
+            email: data.email || '',
+            phone: data.phone || '',
+            goal: data.goal || 'Saúde',
+            status: data.status || 'Ativo',
+            created_by: userData.user.id
+          };
           const { data: retryPatient, error: retryError } = await supabase
             .from('patients')
             .insert([cleanPayload])
@@ -92,7 +109,6 @@ export const PatientService = {
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { birthDate, lastVisit, ...restData } = data;
       const updateData: any = { ...restData };
       
@@ -109,8 +125,14 @@ export const PatientService = {
       if (error) {
         const isColumnError = error.message?.includes('column') || error.code === '42703';
         if (isColumnError) {
-          console.warn('Patient update failed with full columns, trying without weight/height...', error);
-          const { weight, height, ...cleanUpdateData } = updateData;
+          console.warn('Patient update failed with full columns, trying minimal subset...', error);
+          const cleanUpdateData: any = {};
+          if (data.name !== undefined) cleanUpdateData.name = data.name;
+          if (data.email !== undefined) cleanUpdateData.email = data.email;
+          if (data.phone !== undefined) cleanUpdateData.phone = data.phone;
+          if (data.goal !== undefined) cleanUpdateData.goal = data.goal;
+          if (data.status !== undefined) cleanUpdateData.status = data.status;
+
           const { data: retryPatient, error: retryError } = await supabase
             .from('patients')
             .update(cleanUpdateData)
