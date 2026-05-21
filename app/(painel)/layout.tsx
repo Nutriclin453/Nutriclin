@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { SidebarProvider } from "@/components/sidebar-context";
 
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Sistema de gestão para nutricionistas esportivos",
 };
 
-export default function RootLayout({
+export default function PainelLayout({
   children,
 }: {
   children: React.ReactNode;

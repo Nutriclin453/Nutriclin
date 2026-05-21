@@ -9,15 +9,114 @@ import {
   Sun,
   LogOut,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/components/supabase-provider";
 import { useSidebar } from "@/components/sidebar-context";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+import { AnimatePresence, motion } from "motion/react";
+
+import { useRouter } from "next/navigation";
 
 export function TopNav() {
   const { user, logout } = useAuth();
   const { toggle } = useSidebar();
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Current user clicks outside to close
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    // Check initial unread notifications
+    const fetchUnread = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('read', false)
+          .order('created_at', { ascending: false })
+          .limit(10);
+          
+        if (!error && data) {
+          setNotifications(data);
+          setHasUnread(data.length > 0);
+        }
+      } catch (err) {
+        console.error('Error fetching unread notifications:', err);
+      }
+    };
+    fetchUnread();
+
+    // Subscribe to realtime notification updates
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        (payload) => {
+          if (payload.new && !payload.new.read) {
+            setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+            setHasUnread(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const handleNotificationClick = async (notif: any) => {
+    setIsNotifOpen(false);
+    
+    if (!notif.read) {
+      try {
+        await supabase.from('notifications').update({ read: true }).eq('id', notif.id);
+        setNotifications(prev => {
+          const updated = prev.filter(n => n.id !== notif.id);
+          setHasUnread(updated.length > 0);
+          return updated;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    router.push('/pacientes');
+  };
+
+  const handleClearNotifications = async () => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('read', false);
+
+      if (error) {
+        console.error('Error clearing notifications in Supabase:', error);
+      }
+    } catch (e) {
+      console.error('Exception clearing notifications:', e);
+    }
+
+    setNotifications([]);
+    setHasUnread(false);
+  };
 
   useEffect(() => {
     // Check initial theme preference, prioritizing localStorage
@@ -80,10 +179,76 @@ export function TopNav() {
           </button>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all">
+        <div className="flex items-center gap-1 relative" ref={notifRef}>
+          <button 
+            onClick={() => setIsNotifOpen((prev) => !prev)}
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all relative"
+          >
             <Bell size={20} />
+            {hasUnread && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900 pointer-events-none" />
+            )}
           </button>
+          
+          <AnimatePresence>
+            {isNotifOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute top-full right-0 mt-4 w-72 md:w-80 bg-slate-900 border border-primary/50 shadow-2xl shadow-primary/20 rounded-2xl overflow-hidden z-50 flex flex-col"
+              >
+                <div className="p-4 border-b border-primary/20 flex items-center justify-between bg-slate-950/50">
+                  <h3 className="text-sm font-bold text-slate-100 uppercase tracking-widest">Notificações</h3>
+                  {hasUnread && (
+                    <span className="text-[10px] bg-primary text-slate-950 px-2 py-0.5 rounded-full font-black">Novas</span>
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto w-full flex flex-col overscroll-contain">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center text-slate-500 text-xs">
+                      Nenhuma notificação por enquanto.
+                    </div>
+                  ) : (
+                    notifications.map(notif => (
+                      <button
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`w-full text-left p-4 border-b border-slate-800/50 transition-colors ${
+                          notif.read ? 'bg-slate-900 opacity-60 hover:bg-slate-800/80 cursor-default' : 'bg-slate-800 hover:bg-slate-700 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 transition-colors ${notif.read ? 'bg-slate-600' : 'bg-primary shadow-glow shadow-primary/50'}`} />
+                          <div>
+                            <h4 className={`text-xs font-bold leading-tight ${notif.read ? 'text-slate-400' : 'text-slate-100'}`}>
+                              {notif.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
+                              {notif.message}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <div className="p-3 border-t border-primary/20 bg-slate-950/45 text-center">
+                    <button
+                      onClick={handleClearNotifications}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-[11px] font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all uppercase tracking-wider cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                      Limpar Notificações
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <button
             onClick={toggleTheme}
             className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-all"
