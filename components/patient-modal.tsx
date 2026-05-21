@@ -62,7 +62,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
       } else {
         await PatientService.create(cleanData as any);
       }
-      onSuccess();
+      await onSuccess();
       onClose();
     } catch (err: any) {
       console.error("Error saving patient:", err);
@@ -86,7 +86,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
     setError(null);
     try {
       await PatientService.delete(patient.id);
-      onSuccess();
+      await onSuccess();
       onClose();
     } catch (err: any) {
       console.error("Error deleting patient:", err);

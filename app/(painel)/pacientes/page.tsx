@@ -20,6 +20,7 @@ import { PatientModal } from '@/components/patient-modal';
 import { useAuth } from '@/components/supabase-provider';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
+import { isMockEnabled } from '@/lib/mock-db';
 
 export default function Pacientes() {
   const { user, loading: authLoading } = useAuth();
@@ -30,11 +31,12 @@ export default function Pacientes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loadingPatientId, setLoadingPatientId] = useState<string | null>(null);
 
   const syncLeadsToPatients = async (currentPatients: Patient[]) => {
     try {
       let leads: any[] = [];
-      if (typeof window !== 'undefined') {
+      if (!isMockEnabled() && typeof window !== 'undefined') {
         const { data: fetchedLeads } = await supabase
           .from('leads')
           .select('*')
@@ -282,26 +284,32 @@ export default function Pacientes() {
                           <div className="flex items-center gap-1.5 bg-error/10 p-1.5 rounded-xl border border-error/20" onClick={(e) => e.stopPropagation()}>
                             <span className="text-[9px] font-black text-error uppercase tracking-wider px-1">Excluir?</span>
                             <button
+                              disabled={loadingPatientId === patient.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
+                                if (!patient.id) return;
+                                setLoadingPatientId(patient.id);
                                 try {
                                   await PatientService.delete(patient.id);
                                   setDeletingId(null);
-                                  fetchPatients();
+                                  await fetchPatients();
                                 } catch (err) {
                                   console.error(err);
+                                } finally {
+                                  setLoadingPatientId(null);
                                 }
                               }}
-                              className="px-2 py-1 bg-error text-white text-[9px] font-black rounded-lg hover:brightness-110 transition-all uppercase"
+                              className="px-2 py-1 bg-error text-white text-[9px] font-black rounded-lg hover:brightness-110 transition-all uppercase disabled:opacity-50"
                             >
-                              Sim
+                              {loadingPatientId === patient.id ? "..." : "Sim"}
                             </button>
                             <button
+                              disabled={loadingPatientId === patient.id}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setDeletingId(null);
                               }}
-                              className="px-2 py-1 bg-surface-container-high border border-outline-variant text-[9px] font-black text-on-surface-variant rounded-lg hover:bg-surface-container transition-all uppercase"
+                              className="px-2 py-1 bg-surface-container-high border border-outline-variant text-[9px] font-black text-on-surface-variant rounded-lg hover:bg-surface-container transition-all uppercase disabled:opacity-50"
                             >
                               Não
                             </button>
