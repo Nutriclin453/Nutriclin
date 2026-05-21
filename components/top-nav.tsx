@@ -15,10 +15,12 @@ import { useSidebar } from "@/components/sidebar-context";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { AnimatePresence, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 
 export function TopNav() {
   const { user, logout } = useAuth();
   const { toggle } = useSidebar();
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [hasUnread, setHasUnread] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -184,7 +186,13 @@ export function TopNav() {
                     notifications.map(notif => (
                       <button
                         key={notif.id}
-                        onClick={() => !notif.read && markAsRead(notif.id)}
+                        onClick={async () => {
+                          if (!notif.read) {
+                            await markAsRead(notif.id);
+                          }
+                          setIsNotifOpen(false);
+                          router.push('/pacientes');
+                        }}
                         className={`w-full text-left p-4 border-b border-slate-800/50 transition-colors ${
                           notif.read ? 'bg-slate-900 opacity-60 hover:bg-slate-800/80 cursor-default' : 'bg-slate-800 hover:bg-slate-700 cursor-pointer'
                         }`}

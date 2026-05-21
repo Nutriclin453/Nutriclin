@@ -22,6 +22,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (patient) {
@@ -36,6 +37,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
       });
     }
     setError(null);
+    setConfirmDelete(false);
   }, [patient, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,11 +79,11 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteInstant = async () => {
     if (!patient?.id) return;
-    if (!confirm("Tem certeza que deseja excluir este paciente?")) return;
     
     setLoading(true);
+    setError(null);
     try {
       await PatientService.delete(patient.id);
       onSuccess();
@@ -98,6 +100,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -224,37 +227,66 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
               </div>
 
               <div className="flex items-center justify-between gap-4 pt-6">
-                {patient && (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={loading}
-                    className="p-3 bg-error/10 text-error border border-error/20 rounded-xl hover:bg-error/20 transition-all disabled:opacity-50"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                )}
-                <div className="flex gap-3 flex-1 justify-end">
-                  <button 
-                    type="button"
-                    onClick={onClose}
-                    className="px-6 py-3 rounded-xl font-bold text-on-surface-variant hover:bg-surface-dim transition-all"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <div className="w-5 h-5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                    ) : (
-                      <Save size={18} />
+                {confirmDelete ? (
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-error/10 p-4 rounded-2xl border border-error/20">
+                    <span className="text-xs font-bold text-error">Tem certeza de que deseja excluir este paciente permanentemente?</span>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        className="px-4 py-2 text-xs font-bold bg-surface-container-high hover:bg-surface-container rounded-xl border border-outline-variant text-on-surface-variant transition-colors"
+                      >
+                        Não, Voltar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDeleteInstant}
+                        disabled={loading}
+                        className="px-4 py-2 text-xs font-bold bg-error text-white hover:brightness-110 rounded-xl transition-all disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {loading ? (
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                          <Trash2 size={12} />
+                        )}
+                        Sim, Excluir
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {patient && (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(true)}
+                        className="p-3 bg-error/10 text-error border border-error/20 rounded-xl hover:bg-error/20 transition-all disabled:opacity-50"
+                      >
+                        <Trash2 size={20} />
+                      </button>
                     )}
-                    {patient ? 'Salvar Alterações' : 'Confirmar Cadastro'}
-                  </button>
-                </div>
+                    <div className="flex gap-3 flex-1 justify-end">
+                      <button 
+                        type="button"
+                        onClick={onClose}
+                        className="px-6 py-3 rounded-xl font-bold text-on-surface-variant hover:bg-surface-dim transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        type="submit"
+                        disabled={loading}
+                        className="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                      >
+                        {loading ? (
+                          <div className="w-5 h-5 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                        ) : (
+                          <Save size={18} />
+                        )}
+                        {patient ? 'Salvar Alterações' : 'Confirmar Cadastro'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </form>
           </motion.div>

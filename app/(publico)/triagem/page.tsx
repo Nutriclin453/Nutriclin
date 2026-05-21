@@ -24,6 +24,8 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { LeadService } from '@/lib/lead-service';
+import { PatientService } from '@/lib/patient-service';
+import { isMockEnabled } from '@/lib/mock-db';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 
@@ -125,6 +127,21 @@ export default function TriagemPage() {
         height: parsedHeight,
         goal: goal
       });
+
+      // Try to auto-create patient direct (working beautifully in mock mode, and if RLS allows)
+      try {
+        await PatientService.create({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone,
+          goal: goal,
+          status: 'Ativo',
+          weight: parsedWeight,
+          height: parsedHeight,
+        } as any);
+      } catch (patientErr) {
+        console.warn('Could not insert patient directly in public page, will be synced upon dietitian login:', patientErr);
+      }
 
       try {
         await supabase.from('notifications').insert({

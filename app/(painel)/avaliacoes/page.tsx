@@ -52,6 +52,7 @@ export default function Avaliacoes() {
 
   // UI State
   const [loading, setLoading] = useState(false);
+  const [deletingEvalId, setDeletingEvalId] = useState<string | null>(null);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedComparisons, setSelectedComparisons] = useState<Evaluation[]>([]);
   const [fetchLoading, setFetchLoading] = useState(false);
@@ -259,7 +260,6 @@ export default function Avaliacoes() {
 
   const handleDelete = async (id: string | undefined) => {
     if (!id) return;
-    if (!confirm('Deseja excluir esta avaliação?')) return;
     
     try {
       await EvaluationService.delete(id);
@@ -745,24 +745,51 @@ export default function Avaliacoes() {
                                 </span>
                               </td>
                               <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEdit(ev);
-                                  }}
-                                  className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(ev.id);
-                                  }}
-                                  className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
+                                {deletingEvalId === ev.id ? (
+                                  <div className="flex items-center gap-1 bg-error/10 p-1 rounded-lg border border-error/20" onClick={(e) => e.stopPropagation()}>
+                                    <span className="text-[9px] font-black text-error uppercase tracking-wider px-1">Excluir?</span>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        await handleDelete(ev.id);
+                                        setDeletingEvalId(null);
+                                      }}
+                                      className="px-2 py-0.5 bg-error text-white text-[9px] font-black rounded hover:brightness-110 transition-all uppercase"
+                                    >
+                                      Sim
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingEvalId(null);
+                                      }}
+                                      className="px-2 py-0.5 bg-surface-container-high border border-outline-variant text-[9px] font-black text-on-surface-variant rounded hover:bg-surface-container transition-all uppercase"
+                                    >
+                                      Não
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(ev);
+                                      }}
+                                      className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                                    >
+                                      <Edit size={16} />
+                                    </button>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeletingEvalId(ev.id || null);
+                                      }}
+                                      className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </>
+                                )}
                               </td>
                             </tr>
                           );

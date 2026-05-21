@@ -13,6 +13,8 @@ export interface Patient {
   gender?: 'Masculino' | 'Feminino' | 'Outro' | null;
   createdBy?: string;
   createdAt?: any;
+  weight?: number;
+  height?: number;
 }
 
 const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
@@ -43,20 +45,36 @@ export const PatientService = {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { birthDate, lastVisit, ...restData } = data;
 
+      const payload: any = {
+        ...restData,
+        birth_date: birthDate,
+        last_visit: lastVisit,
+        created_by: userData.user.id
+      };
+
       const { data: newPatient, error } = await supabase
         .from('patients')
-        .insert([
-          {
-            ...restData,
-            birth_date: birthDate,
-            last_visit: lastVisit,
-            created_by: userData.user.id
-          }
-        ])
+        .insert([payload])
         .select()
         .single();
 
       if (error) {
+        const isColumnError = error.message?.includes('column') || error.code === '42703';
+        if (isColumnError) {
+          console.warn('Patient creation failed with full columns, trying without weight/height...', error);
+          const { weight, height, ...cleanPayload } = payload;
+          const { data: retryPatient, error: retryError } = await supabase
+            .from('patients')
+            .insert([cleanPayload])
+            .select()
+            .single();
+
+          if (!retryError) {
+            return retryPatient;
+          }
+          throw retryError;
+        }
+
         console.error('Supabase Error (create):', error);
         throw new Error(error.message || JSON.stringify(error));
       }
@@ -87,6 +105,23 @@ export const PatientService = {
         .single();
 
       if (error) {
+        const isColumnError = error.message?.includes('column') || error.code === '42703';
+        if (isColumnError) {
+          console.warn('Patient update failed with full columns, trying without weight/height...', error);
+          const { weight, height, ...cleanUpdateData } = updateData;
+          const { data: retryPatient, error: retryError } = await supabase
+            .from('patients')
+            .update(cleanUpdateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+          if (!retryError) {
+            return retryPatient;
+          }
+          throw retryError;
+        }
+
         console.error('Supabase Error (update):', error);
         throw new Error(error.message || JSON.stringify(error));
       }

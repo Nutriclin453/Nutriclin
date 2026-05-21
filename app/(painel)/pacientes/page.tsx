@@ -19,6 +19,7 @@ import { Patient, PatientService } from '@/lib/patient-service';
 import { PatientModal } from '@/components/patient-modal';
 import { useAuth } from '@/components/supabase-provider';
 import { motion } from 'motion/react';
+import { supabase } from '@/lib/supabase';
 
 export default function Pacientes() {
   const { user, loading: authLoading } = useAuth();
@@ -28,6 +29,73 @@ export default function Pacientes() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const syncLeadsToPatients = async (currentPatients: Patient[]) => {
+    try {
+      let leads: any[] = [];
+      if (typeof window !== 'undefined') {
+        const { data: fetchedLeads } = await supabase
+          .from('leads')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (fetchedLeads) leads = fetchedLeads;
+      }
+      
+      if (leads.length === 0) {
+        try {
+          const item = localStorage.getItem('mock_leads');
+          if (item) leads = JSON.parse(item);
+        } catch (_) {}
+      }
+
+      if (!leads || leads.length === 0) return false;
+
+      const patientEmails = new Set(currentPatients.map(p => p.email?.toLowerCase().trim()).filter(Boolean));
+      const patientNames = new Set(currentPatients.map(p => p.name?.toLowerCase().trim()).filter(Boolean));
+      let mutated = false;
+
+      for (const lead of leads) {
+        if (lead.name === '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__') continue;
+
+        const emailKey = lead.email?.toLowerCase().trim();
+        const nameKey = lead.name?.toLowerCase().trim();
+
+        if (emailKey && patientEmails.has(emailKey)) continue;
+        if (nameKey && patientNames.has(nameKey)) continue;
+
+        try {
+          await PatientService.create({
+            name: lead.name,
+            email: lead.email || '',
+            phone: lead.phone || lead.whatsapp || lead.telefone || '',
+            goal: lead.goal || lead.objetivo || 'Saúde',
+            status: 'Ativo',
+            weight: lead.weight || lead.peso,
+            height: lead.height || lead.altura,
+            createdAt: lead.created_at || new Date().toISOString()
+          } as any);
+          mutated = true;
+        } catch (err) {
+          console.error(`Error auto-importing lead ${lead.name}:`, err);
+        }
+      }
+      return mutated;
+    } catch (e) {
+      console.error('Error in leads sync:', e);
+      return false;
+    }
+  };
+
+  const isNewPatient = (patient: Patient) => {
+    const dateStr = patient.createdAt || (patient as any).created_at;
+    if (!dateStr) return false;
+    const createdTime = new Date(dateStr).getTime();
+    if (isNaN(createdTime)) return false;
+    const now = new Date().getTime();
+    const diffHours = (now - createdTime) / (1000 * 60 * 60);
+    return diffHours >= 0 && diffHours < 24;
+  };
 
   const fetchPatients = async () => {
     if (!user) return;
@@ -36,6 +104,12 @@ export default function Pacientes() {
     try {
       const data = await PatientService.getAll();
       setPatients(data);
+      
+      const didSync = await syncLeadsToPatients(data);
+      if (didSync) {
+        const updatedData = await PatientService.getAll();
+        setPatients(updatedData);
+      }
     } catch (error: any) {
       console.error("Error fetching patients:", error);
       setErrorMsg(error?.message || String(error));
@@ -162,8 +236,15 @@ export default function Pacientes() {
                             {patient.name.charAt(0)}
                           </div>
                           <div className="overflow-hidden">
-                             <p className="text-sm font-bold text-on-surface truncate">{patient.name}</p>
-                             <p className="text-[10px] text-on-surface-variant font-medium uppercase">ID: {patient.id?.slice(-6)}</p>
+                             <div className="flex items-center gap-2 flex-wrap min-w-0">
+                               <p className="text-sm font-bold text-on-surface truncate pr-1">{patient.name}</p>
+                               {isNewPatient(patient) && (
+                                 <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-[#00FF55]/15 text-[#00FF66] border border-[#00FF55]/30 rounded shrink-0 animate-pulse">
+                                   Novo
+                                 </span>
+                               )}
+                             </div>
+                             <p className="text-[10px] text-on-surface-variant font-medium uppercase mt-0.5">ID: {patient.id?.slice(-6)}</p>
                           </div>
                         </div>
                       </td>
@@ -197,32 +278,56 @@ export default function Pacientes() {
                         </div>
                       </td>
                       <td className="px-4 lg:px-8 py-6 text-right flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => handleEdit(patient)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
-                          title="Editar Paciente"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            if (confirm(`Deseja realmente excluir o paciente ${patient.name} e todo o seu histórico de consultas?`)) {
-                              try {
-                                await PatientService.delete(patient.id);
-                                fetchPatients();
-                              } catch (err) {
-                                alert('Erro ao excluir o paciente.');
-                                console.error(err);
-                              }
-                            }
-                          }}
-                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-all"
-                          title="Excluir Paciente"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {deletingId === patient.id ? (
+                          <div className="flex items-center gap-1.5 bg-error/10 p-1.5 rounded-xl border border-error/20" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-[9px] font-black text-error uppercase tracking-wider px-1">Excluir?</span>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await PatientService.delete(patient.id);
+                                  setDeletingId(null);
+                                  fetchPatients();
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }}
+                              className="px-2 py-1 bg-error text-white text-[9px] font-black rounded-lg hover:brightness-110 transition-all uppercase"
+                            >
+                              Sim
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingId(null);
+                              }}
+                              className="px-2 py-1 bg-surface-container-high border border-outline-variant text-[9px] font-black text-on-surface-variant rounded-lg hover:bg-surface-container transition-all uppercase"
+                            >
+                              Não
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => handleEdit(patient)}
+                              className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                              title="Editar Paciente"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingId(patient.id || null);
+                              }}
+                              className="p-2 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-xl transition-all"
+                              title="Excluir Paciente"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}
