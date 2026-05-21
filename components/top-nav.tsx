@@ -90,6 +90,34 @@ export function TopNav() {
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      if (notifications.length === 0) return;
+      const idsToDelete = notifications.map(n => n.id);
+      
+      // Attempt to delete notifications from the DB
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (error) {
+        console.warn('Could not delete notifications from DB, marking them as read instead:', error);
+        // Fallback to update them as read in DB if delete is restricted
+        await supabase
+          .from('notifications')
+          .update({ read: true })
+          .in('id', idsToDelete);
+      }
+    } catch (err) {
+      console.error('Error clearing notifications:', err);
+    } finally {
+      // Always empty the UI list immediately for instant user feedback
+      setNotifications([]);
+      setHasUnread(false);
+    }
+  };
+
   useEffect(() => {
     // Check initial theme preference, prioritizing localStorage
     const savedTheme = localStorage.getItem("theme");
@@ -171,10 +199,20 @@ export function TopNav() {
                 transition={{ duration: 0.15 }}
                 className="absolute top-full right-0 mt-4 w-72 md:w-80 bg-slate-900 border border-primary/50 shadow-2xl shadow-primary/20 rounded-2xl overflow-hidden z-50 flex flex-col"
               >
-                <div className="p-4 border-b border-primary/20 flex items-center justify-between bg-slate-950/50">
-                  <h3 className="text-sm font-bold text-slate-100 uppercase tracking-widest">Notificações</h3>
-                  {hasUnread && (
-                    <span className="text-[10px] bg-primary text-slate-950 px-2 py-0.5 rounded-full font-black">Novas</span>
+                <div className="p-4 border-b border-primary/20 flex items-center justify-between bg-slate-950/50 gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-100 uppercase tracking-widest">Notificações</h3>
+                    {hasUnread && (
+                      <span className="text-[10px] bg-primary text-slate-950 px-2 py-0.5 rounded-full font-black">Novas</span>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <button
+                      onClick={handleClearAll}
+                      className="text-[10px] font-black text-[#FF4545] hover:text-[#FFA0A0] transition-colors uppercase tracking-wider shrink-0 cursor-pointer"
+                    >
+                      Limpar Tudo
+                    </button>
                   )}
                 </div>
                 <div className="max-h-80 overflow-y-auto w-full flex flex-col overscroll-contain">

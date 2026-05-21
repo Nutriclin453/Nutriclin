@@ -426,8 +426,35 @@ export default function Avaliacoes() {
                     <select 
                       value={patientName}
                       onChange={(e) => {
-                        setPatientName(e.target.value);
+                        const selectedVal = e.target.value;
+                        setPatientName(selectedVal);
+                        
+                        // Clean previous input states first
                         handleClearForm();
+                        
+                        // Find this patient across the already loaded patients list
+                        const matchedPatient = patients.find(p => p.name === selectedVal);
+                        if (matchedPatient) {
+                          if (matchedPatient.weight) {
+                            setWeight(Number(matchedPatient.weight));
+                          }
+                          if (matchedPatient.height) {
+                            setHeight(Number(matchedPatient.height));
+                          }
+                          if (matchedPatient.goal) {
+                            setObjective(matchedPatient.goal);
+                          }
+                          if (matchedPatient.gender) {
+                            const normalizedGender = matchedPatient.gender.toLowerCase() === 'feminino' ? 'female' : 'male';
+                            setGender(normalizedGender);
+                          }
+                          
+                          const patientData = matchedPatient as any;
+                          const mappedAge = patientData.idade ?? patientData.age;
+                          if (mappedAge !== undefined && mappedAge !== null && mappedAge !== '') {
+                            setAge(Number(mappedAge));
+                          }
+                        }
                       }}
                       className="w-full bg-surface-container-high border border-outline-variant rounded-lg p-3 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all outline-none disabled:opacity-50"
                       disabled={loadingPatients}

@@ -15,6 +15,8 @@ export interface Patient {
   createdAt?: any;
   weight?: number;
   height?: number;
+  idade?: number;
+  age?: number;
 }
 
 const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
