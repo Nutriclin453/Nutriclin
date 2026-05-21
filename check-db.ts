@@ -8,13 +8,11 @@ const supabase = createClient(
 );
 
 async function check() {
-  const dummyPayload = {
-    name: 'Inspection Lead',
-    email: 'inspect@example.com',
-    phone: '123456789'
-  };
-  const { data, error } = await supabase.from('leads').insert([dummyPayload]).select();
-  console.log('Insert Result:', error, data);
+  const { data, error } = await supabase.from('patients').select('*').limit(1);
+  console.log('Patient record columns:', error, data);
+
+  const { data: leadData, error: leadError } = await supabase.from('leads').select('*').limit(1);
+  console.log('Lead record columns:', leadError, leadData);
 }
 
 check();

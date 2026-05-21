@@ -138,6 +138,8 @@ export default function TriagemPage() {
           status: 'Ativo',
           weight: parsedWeight,
           height: parsedHeight,
+          age: parsedAge,
+          idade: parsedAge,
         } as any);
       } catch (patientErr) {
         console.warn('Could not insert patient directly in public page, will be synced upon dietitian login:', patientErr);

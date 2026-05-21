@@ -60,9 +60,24 @@ export const PatientService = {
       if (data.height !== undefined) payload.height = data.height;
       if (data.idade !== undefined) payload.idade = data.idade;
       if (data.age !== undefined) payload.age = data.age;
-      if (birthDate !== undefined) payload.birth_date = birthDate;
       if (lastVisit !== undefined) payload.last_visit = lastVisit;
       if (data.gender !== undefined) payload.gender = data.gender;
+
+      // Handle age / birth_date mapping
+      if (birthDate !== undefined && birthDate !== null) {
+        payload.birth_date = birthDate;
+      } else {
+        const anyAge = data.age !== undefined ? data.age : data.idade;
+        if (anyAge !== undefined && anyAge !== null && anyAge !== '') {
+          const ageNum = parseInt(anyAge.toString(), 10);
+          if (!isNaN(ageNum)) {
+            const calculatedBirth = new Date();
+            calculatedBirth.setFullYear(calculatedBirth.getFullYear() - ageNum);
+            calculatedBirth.setMonth(0, 1);
+            payload.birth_date = calculatedBirth.toISOString().split('T')[0];
+          }
+        }
+      }
 
       const { data: newPatient, error } = await supabase
         .from('patients')
@@ -82,6 +97,9 @@ export const PatientService = {
             status: data.status || 'Ativo',
             created_by: userData.user.id
           };
+          if (payload.birth_date !== undefined) {
+            cleanPayload.birth_date = payload.birth_date;
+          }
           const { data: retryPatient, error: retryError } = await supabase
             .from('patients')
             .insert([cleanPayload])
@@ -89,7 +107,11 @@ export const PatientService = {
             .single();
 
           if (!retryError) {
-            return retryPatient;
+            return {
+              ...retryPatient,
+              age: data.age ?? data.idade,
+              idade: data.idade ?? data.age
+            };
           }
           throw retryError;
         }
@@ -97,7 +119,11 @@ export const PatientService = {
         console.error('Supabase Error (create):', error);
         throw new Error(error.message || JSON.stringify(error));
       }
-      return newPatient;
+      return {
+        ...newPatient,
+        age: data.age ?? data.idade,
+        idade: data.idade ?? data.age
+      };
     } catch (err) {
       return handleFetchError(err, () => savePatient(data as any));
     }
@@ -112,8 +138,23 @@ export const PatientService = {
       const { birthDate, lastVisit, ...restData } = data;
       const updateData: any = { ...restData };
       
-      if (birthDate !== undefined) updateData.birth_date = birthDate;
       if (lastVisit !== undefined) updateData.last_visit = lastVisit;
+
+      // Handle age / birth_date mapping for update
+      if (birthDate !== undefined) {
+        updateData.birth_date = birthDate;
+      } else {
+        const anyAge = data.age !== undefined ? data.age : data.idade;
+        if (anyAge !== undefined && anyAge !== null && anyAge !== '') {
+          const ageNum = parseInt(anyAge.toString(), 10);
+          if (!isNaN(ageNum)) {
+            const calculatedBirth = new Date();
+            calculatedBirth.setFullYear(calculatedBirth.getFullYear() - ageNum);
+            calculatedBirth.setMonth(0, 1);
+            updateData.birth_date = calculatedBirth.toISOString().split('T')[0];
+          }
+        }
+      }
 
       const { data: updatedPatient, error } = await supabase
         .from('patients')
@@ -132,6 +173,7 @@ export const PatientService = {
           if (data.phone !== undefined) cleanUpdateData.phone = data.phone;
           if (data.goal !== undefined) cleanUpdateData.goal = data.goal;
           if (data.status !== undefined) cleanUpdateData.status = data.status;
+          if (updateData.birth_date !== undefined) cleanUpdateData.birth_date = updateData.birth_date;
 
           const { data: retryPatient, error: retryError } = await supabase
             .from('patients')
@@ -141,7 +183,11 @@ export const PatientService = {
             .single();
 
           if (!retryError) {
-            return retryPatient;
+            return {
+              ...retryPatient,
+              age: data.age ?? data.idade,
+              idade: data.idade ?? data.age
+            };
           }
           throw retryError;
         }
@@ -149,7 +195,11 @@ export const PatientService = {
         console.error('Supabase Error (update):', error);
         throw new Error(error.message || JSON.stringify(error));
       }
-      return updatedPatient;
+      return {
+        ...updatedPatient,
+        age: data.age ?? data.idade,
+        idade: data.idade ?? data.age
+      };
     } catch (err) {
       return handleFetchError(err, () => savePatient({ id, ...data } as any));
     }
@@ -179,13 +229,24 @@ export const PatientService = {
         console.error('Supabase Error (getAll):', error);
         throw error;
       }
-      return (data || []).map(p => ({
+      return (data || []).map(p => {
+        let calculatedAge: number | undefined = undefined;
+        if (p.birth_date) {
+          const birth = new Date(p.birth_date);
+          if (!isNaN(birth.getTime())) {
+            calculatedAge = new Date().getFullYear() - birth.getFullYear();
+          }
+        }
+        return {
           ...p,
           lastVisit: p.last_visit ? { toDate: () => new Date(p.last_visit) } : null,
           birthDate: p.birth_date,
+          age: calculatedAge ?? p.age ?? p.idade,
+          idade: calculatedAge ?? p.idade ?? p.age,
           createdBy: p.created_by,
           createdAt: p.created_at
-      })) as unknown as Patient[];
+        };
+      }) as unknown as Patient[];
     } catch (err) {
       return handleFetchError(err, () => getPatients());
     }
