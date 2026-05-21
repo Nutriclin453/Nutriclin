@@ -132,24 +132,8 @@ export default function TriagemPage() {
           message: name.trim(),
           read: false,
         });
-
-        // Grava lead diretamente na principal tabela de pacientes
-        const { error: patientInsertError } = await supabase.from('patients').insert({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          phone: phone,
-          goal: goal,
-          age: parsedAge,
-          weight: parsedWeight,
-          height: parsedHeight,
-          status: 'Ativo'
-        });
-
-        if (patientInsertError) {
-          console.error("Erro ao inserir na tabela patients:", patientInsertError.message || patientInsertError.code);
-        }
       } catch (notifErr) {
-        console.error('Failed to create notification or auto-insert patient', notifErr);
+        console.error('Failed to create notification', notifErr);
       }
 
       setStep('success');

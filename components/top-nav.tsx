@@ -9,7 +9,6 @@ import {
   Sun,
   LogOut,
   ChevronDown,
-  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/components/supabase-provider";
 import { useSidebar } from "@/components/sidebar-context";
@@ -17,12 +16,9 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { AnimatePresence, motion } from "motion/react";
 
-import { useRouter } from "next/navigation";
-
 export function TopNav() {
   const { user, logout } = useAuth();
   const { toggle } = useSidebar();
-  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [hasUnread, setHasUnread] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -47,13 +43,13 @@ export function TopNav() {
         const { data, error } = await supabase
           .from('notifications')
           .select('*')
-          .eq('read', false)
           .order('created_at', { ascending: false })
           .limit(10);
           
         if (!error && data) {
           setNotifications(data);
-          setHasUnread(data.length > 0);
+          const unreadCount = data.filter(n => !n.read).length;
+          setHasUnread(unreadCount > 0);
         }
       } catch (err) {
         console.error('Error fetching unread notifications:', err);
@@ -68,10 +64,8 @@ export function TopNav() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications' },
         (payload) => {
-          if (payload.new && !payload.new.read) {
-            setNotifications(prev => [payload.new, ...prev].slice(0, 10));
-            setHasUnread(true);
-          }
+          setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+          setHasUnread(true);
         }
       )
       .subscribe();
@@ -81,41 +75,17 @@ export function TopNav() {
     };
   }, []);
 
-  const handleNotificationClick = async (notif: any) => {
-    setIsNotifOpen(false);
-    
-    if (!notif.read) {
-      try {
-        await supabase.from('notifications').update({ read: true }).eq('id', notif.id);
-        setNotifications(prev => {
-          const updated = prev.filter(n => n.id !== notif.id);
-          setHasUnread(updated.length > 0);
-          return updated;
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    router.push('/pacientes');
-  };
-
-  const handleClearNotifications = async () => {
+  const markAsRead = async (id: any) => {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error clearing notifications in Supabase:', error);
-      }
+      await supabase.from('notifications').update({ read: true }).eq('id', id);
+      setNotifications(prev => {
+        const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+        setHasUnread(updated.some(n => !n.read));
+        return updated;
+      });
     } catch (e) {
-      console.error('Exception clearing notifications:', e);
+      console.error(e);
     }
-
-    setNotifications([]);
-    setHasUnread(false);
   };
 
   useEffect(() => {
@@ -214,7 +184,7 @@ export function TopNav() {
                     notifications.map(notif => (
                       <button
                         key={notif.id}
-                        onClick={() => handleNotificationClick(notif)}
+                        onClick={() => !notif.read && markAsRead(notif.id)}
                         className={`w-full text-left p-4 border-b border-slate-800/50 transition-colors ${
                           notif.read ? 'bg-slate-900 opacity-60 hover:bg-slate-800/80 cursor-default' : 'bg-slate-800 hover:bg-slate-700 cursor-pointer'
                         }`}
@@ -234,17 +204,6 @@ export function TopNav() {
                     ))
                   )}
                 </div>
-                {notifications.length > 0 && (
-                  <div className="p-3 border-t border-primary/20 bg-slate-950/45 text-center">
-                    <button
-                      onClick={handleClearNotifications}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-[11px] font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all uppercase tracking-wider cursor-pointer"
-                    >
-                      <Trash2 size={13} />
-                      Limpar Notificações
-                    </button>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>

@@ -162,12 +162,7 @@ export default function Pacientes() {
                             {patient.name.charAt(0)}
                           </div>
                           <div className="overflow-hidden">
-                             <p className="text-sm font-bold text-on-surface truncate flex items-center justify-between gap-2">
-                               {patient.name}
-                               {patient.createdAt && (new Date().getTime() - new Date(patient.createdAt).getTime() < 24 * 60 * 60 * 1000) && (
-                                 <span className="bg-[#39FF14]/10 text-[#39FF14] text-[9px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest border border-[#39FF14]/30 shadow-[0_0_10px_rgba(57,255,20,0.2)]">Novo</span>
-                               )}
-                             </p>
+                             <p className="text-sm font-bold text-on-surface truncate">{patient.name}</p>
                              <p className="text-[10px] text-on-surface-variant font-medium uppercase">ID: {patient.id?.slice(-6)}</p>
                           </div>
                         </div>

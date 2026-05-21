@@ -13,9 +13,6 @@ export interface Patient {
   gender?: 'Masculino' | 'Feminino' | 'Outro' | null;
   createdBy?: string;
   createdAt?: any;
-  age?: number | null;
-  weight?: number | null;
-  height?: number | null;
 }
 
 const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
@@ -113,18 +110,11 @@ export const PatientService = {
       }
       if (userError || !userData.user) return [];
       
-      let query = supabase
+      const { data, error } = await supabase
         .from('patients')
-        .select('*');
-        
-      const userId = userData?.user?.id;
-      if (userId) {
-        query = (query as any).or(`created_by.eq.${userId},created_by.is.null`);
-      } else {
-        query = query.is('created_by', null);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+        .select('*')
+        .eq('created_by', userData.user.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Supabase Error (getAll):', error);
