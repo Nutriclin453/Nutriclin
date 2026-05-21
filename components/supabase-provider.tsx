@@ -79,10 +79,36 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        try {
+          // Store dynamic nutritionist ID in a metadata record for public lead association
+          const { data: existing } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('name', '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__')
+            .limit(1);
+
+          if (!existing || existing.length === 0) {
+            await supabase.from('leads').insert([{
+              name: '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__',
+              email: session.user.id,
+              phone: '0000000000',
+              goal: 'SYSTEM'
+            }]);
+          } else if (existing[0].email !== session.user.id) {
+            await supabase.from('leads')
+              .update({ email: session.user.id })
+              .eq('name', '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__');
+          }
+        } catch (e) {
+          console.error('Failed to register/update nutritionist metadata in leads:', e);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();

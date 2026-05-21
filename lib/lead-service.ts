@@ -43,6 +43,21 @@ export const LeadService = {
       return saveMockLead(data);
     }
     try {
+      // Find dynamic default nutritionist ID if registered
+      let dNutriId: string | null = null;
+      try {
+        const { data: metaRows } = await supabase
+          .from('leads')
+          .select('email')
+          .eq('name', '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__')
+          .limit(1);
+        if (metaRows && metaRows.length > 0) {
+          dNutriId = metaRows[0].email;
+        }
+      } catch (err) {
+        console.warn('Could not load nutritionist dynamic ID metadata:', err);
+      }
+
       // Map properties both in Portuguese and English to support whatever column names they configured
       const payload: any = {
         name: data.name,
@@ -67,8 +82,15 @@ export const LeadService = {
         payload.objetivo = data.goal;
       }
 
+      // If we have the dynamic nutritionist user ID, append candidates
+      if (dNutriId) {
+        payload.nutritionist_id = dNutriId;
+        payload.created_by = dNutriId;
+        payload.user_id = dNutriId;
+      }
+
       // Try standard insert first
-      const { data: newLead, error } = await supabase
+      let { data: newLead, error } = await supabase
         .from('leads')
         .insert([payload])
         .select()
@@ -77,45 +99,70 @@ export const LeadService = {
       if (error) {
         console.warn('Insertion failed with full payload, trying with custom subset...', error);
         
-        // Let's inspect column error or try subsets
-        const isColumnError = error.message?.includes('column') || error.code === '42703';
+        // Let's inspect column error or try subsets without nutritionist candidates
+        const isColumnError = error.message?.includes('column') || error.code === '42703' || error.message?.includes('cache');
         if (isColumnError) {
-          // Try inserting a minimized English object first
+          // Try inserting a cleaned English object with only standard columns
           try {
+            const engPayload: any = { 
+              name: data.name, 
+              email: data.email, 
+              phone: data.phone, 
+              goal: data.goal,
+              service_type: data.service_type,
+              age: data.age,
+              weight: data.weight,
+              height: data.height
+            };
+            if (dNutriId) {
+              engPayload.nutritionist_id = dNutriId;
+            }
             const { data: resEng, error: errEng } = await supabase
               .from('leads')
-              .insert([{ 
-                name: data.name, 
-                email: data.email, 
-                phone: data.phone, 
-                goal: data.goal,
-                service_type: data.service_type,
-                age: data.age,
-                weight: data.weight,
-                height: data.height
-              }])
+              .insert([engPayload])
               .select()
               .single();
             if (!errEng) return resEng;
           } catch (_) {}
-          
-          // Try inserting a minimized Portuguese object
+
+          // Try inserting a cleaned Portuguese object
           try {
+            const ptPayload: any = { 
+              nome: data.name, 
+              email: data.email, 
+              whatsapp: data.phone, 
+              objetivo: data.goal,
+              tipo_atendimento: data.service_type,
+              idade: data.age,
+              peso: data.weight,
+              altura: data.height
+            };
+            if (dNutriId) {
+              ptPayload.nutritionist_id = dNutriId;
+            }
             const { data: resPt, error: errPt } = await supabase
               .from('leads')
-              .insert([{ 
-                nome: data.name, 
-                email: data.email, 
-                whatsapp: data.phone, 
-                objetivo: data.goal,
-                tipo_atendimento: data.service_type,
-                idade: data.age,
-                peso: data.weight,
-                altura: data.height
-              }])
+              .insert([ptPayload])
               .select()
               .single();
             if (!errPt) return resPt;
+          } catch (_) {}
+
+          // Try stripping all extra candidates (pure minimal insert)
+          try {
+            const minPayload = { 
+              name: data.name, 
+              email: data.email, 
+              phone: data.phone,
+              goal: data.goal,
+              service_type: data.service_type
+            };
+            const { data: resMin, error: errMin } = await supabase
+              .from('leads')
+              .insert([minPayload])
+              .select()
+              .single();
+            if (!errMin) return resMin;
           } catch (_) {}
         }
         
