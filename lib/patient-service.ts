@@ -282,8 +282,11 @@ export const PatientService = {
               age: calculatedAge ?? p.age ?? p.idade ?? matchingLead?.age ?? matchingLead?.idade,
               idade: calculatedAge ?? p.idade ?? p.age ?? matchingLead?.idade ?? matchingLead?.age,
               weight: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
+              peso: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
               height: p.height ?? p.altura ?? matchingLead?.height ?? matchingLead?.altura,
+              altura: p.height ?? p.altura ?? matchingLead?.height ?? matchingLead?.altura,
               gender: p.gender ?? p.genero ?? matchingLead?.gender ?? matchingLead?.genero,
+              genero: p.gender ?? p.genero ?? matchingLead?.gender ?? matchingLead?.genero,
             };
           });
         });
@@ -312,8 +315,11 @@ export const PatientService = {
         age: calculatedAge ?? p.age ?? p.idade ?? matchingLead?.age ?? matchingLead?.idade,
         idade: calculatedAge ?? p.idade ?? p.age ?? matchingLead?.idade ?? matchingLead?.age,
         weight: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
+        peso: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
         height: p.height ?? p.altura ?? matchingLead?.height ?? matchingLead?.altura,
+        altura: p.height ?? p.altura ?? matchingLead?.height ?? matchingLead?.altura,
         gender: p.gender ?? p.genero ?? matchingLead?.gender ?? matchingLead?.genero,
+        genero: p.gender ?? p.genero ?? matchingLead?.gender ?? matchingLead?.genero,
         createdBy: p.createdBy || (p as any).created_by,
         createdAt: p.createdAt || (p as any).created_at
       };

@@ -481,21 +481,23 @@ export default function Avaliacoes() {
                         if (matchedPatient) {
                           const patientData = matchedPatient as any;
 
-                          // Safely extract weight / peso
-                          const rawWeight = patientData.weight ?? patientData.peso;
-                          if (rawWeight !== undefined && rawWeight !== null && rawWeight !== '') {
-                            const cleanedW = parseFloat(String(rawWeight).replace(',', '.'));
-                            if (!isNaN(cleanedW) && cleanedW > 0) {
-                              setWeight(cleanedW);
+                          // Safely extract weight / peso with robust parsers
+                          const wVal = patientData.weight || patientData.peso;
+                          if (wVal !== undefined && wVal !== null && wVal !== '') {
+                            const numericW = Number(wVal);
+                            const parsedW = !isNaN(numericW) ? numericW : parseFloat(String(wVal).replace(',', '.'));
+                            if (!isNaN(parsedW) && parsedW > 0) {
+                              setWeight(parsedW);
                             }
                           }
 
-                          // Safely extract height / altura
-                          const rawHeight = patientData.height ?? patientData.altura;
-                          if (rawHeight !== undefined && rawHeight !== null && rawHeight !== '') {
-                            const cleanedH = parseFloat(String(rawHeight).replace(',', '.'));
-                            if (!isNaN(cleanedH) && cleanedH > 0) {
-                              setHeight(cleanedH);
+                          // Safely extract height / altura with robust parsers
+                          const hVal = patientData.height || patientData.altura;
+                          if (hVal !== undefined && hVal !== null && hVal !== '') {
+                            const numericH = Number(hVal);
+                            const parsedH = !isNaN(numericH) ? numericH : parseFloat(String(hVal).replace(',', '.'));
+                            if (!isNaN(parsedH) && parsedH > 0) {
+                              setHeight(parsedH);
                             }
                           }
 
