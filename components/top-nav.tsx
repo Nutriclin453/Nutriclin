@@ -14,6 +14,7 @@ import { useAuth } from "@/components/supabase-provider";
 import { useSidebar } from "@/components/sidebar-context";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { isMockEnabled } from "@/lib/mock-db";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 
@@ -42,6 +43,36 @@ export function TopNav() {
     // Check initial unread notifications
     const fetchUnread = async () => {
       try {
+        if (isMockEnabled()) {
+          const stored = localStorage.getItem('mock_notifications');
+          let list = [];
+          if (stored) {
+            list = JSON.parse(stored);
+          } else {
+            list = [
+              {
+                id: 'notif-1',
+                title: 'Novo Lead do Instagram!',
+                message: 'Mariana Costa quer marcar uma consulta.',
+                read: false,
+                created_at: new Date(Date.now() - 3600000).toISOString()
+              },
+              {
+                id: 'notif-2',
+                title: 'Atualização de Triagem',
+                message: 'Felipe Melo preencheu o formulário.',
+                read: false,
+                created_at: new Date(Date.now() - 7200000).toISOString()
+              }
+            ];
+            localStorage.setItem('mock_notifications', JSON.stringify(list));
+          }
+          setNotifications(list);
+          const unreadCount = list.filter((n: any) => !n.read).length;
+          setHasUnread(unreadCount > 0);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('notifications')
           .select('*')
@@ -60,25 +91,42 @@ export function TopNav() {
     fetchUnread();
 
     // Subscribe to realtime notification updates
-    const channel = supabase
-      .channel('notifications-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications' },
-        (payload) => {
-          setNotifications(prev => [payload.new, ...prev].slice(0, 10));
-          setHasUnread(true);
-        }
-      )
-      .subscribe();
+    let channel: any;
+    if (!isMockEnabled()) {
+      channel = supabase
+        .channel('notifications-changes')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'notifications' },
+          (payload) => {
+            setNotifications(prev => [payload.new, ...prev].slice(0, 10));
+            setHasUnread(true);
+          }
+        )
+        .subscribe();
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
   const markAsRead = async (id: any) => {
     try {
+      if (isMockEnabled()) {
+        const stored = localStorage.getItem('mock_notifications');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const updated = list.map((n: any) => n.id === id ? { ...n, read: true } : n);
+          localStorage.setItem('mock_notifications', JSON.stringify(updated));
+          setNotifications(updated);
+          setHasUnread(updated.some((n: any) => !n.read));
+        }
+        return;
+      }
+
       await supabase.from('notifications').update({ read: true }).eq('id', id);
       setNotifications(prev => {
         const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
@@ -92,22 +140,46 @@ export function TopNav() {
 
   const handleClearAll = async () => {
     try {
-      if (notifications.length === 0) return;
-      const idsToDelete = notifications.map(n => n.id);
-      
-      // Attempt to delete notifications from the DB
-      const { error } = await supabase
+      if (isMockEnabled()) {
+        localStorage.setItem('mock_notifications', JSON.stringify([]));
+        setNotifications([]);
+        setHasUnread(false);
+        return;
+      }
+
+      // We delete all non-read and read notifications in the Database or mark all of them as read.
+      // To satisfy Both delete and mark as read requirements:
+      // First, attempt to delete all items in our local notifications array or all items in DB entirely.
+      // Let's delete all matching IDs first.
+      if (notifications.length > 0) {
+        const idsToClear = notifications.map(n => n.id);
+        const { error: deleteError } = await supabase
+          .from('notifications')
+          .delete()
+          .in('id', idsToClear);
+
+        if (deleteError) {
+          console.warn('Could not delete individual notifications, trying update filter:', deleteError);
+          // Fallback, update them all to read: true
+          await supabase
+            .from('notifications')
+            .update({ read: true })
+            .in('id', idsToClear);
+        }
+      }
+
+      // Also clean up any other ones by executing a delete on any unread notifications
+      const { error: cleanAllError } = await supabase
         .from('notifications')
         .delete()
-        .in('id', idsToDelete);
+        .eq('read', false);
 
-      if (error) {
-        console.warn('Could not delete notifications from DB, marking them as read instead:', error);
-        // Fallback to update them as read in DB if delete is restricted
+      if (cleanAllError) {
+        // Fallback: update any unread to read in the DB
         await supabase
           .from('notifications')
           .update({ read: true })
-          .in('id', idsToDelete);
+          .eq('read', false);
       }
     } catch (err) {
       console.error('Error clearing notifications:', err);

@@ -147,14 +147,17 @@ export const LeadService = {
           if (!errPt) return resPt;
         } catch (_) {}
 
-        // Try stripping all extra candidates (pure minimal insert)
+        // Try stripping all extra candidates (pure minimal insert with standard columns)
         try {
           const minPayload = { 
             name: data.name, 
             email: data.email, 
             phone: data.phone,
             goal: data.goal,
-            service_type: data.service_type
+            service_type: data.service_type,
+            age: data.age !== undefined && data.age !== null ? Number(data.age) : undefined,
+            weight: data.weight !== undefined && data.weight !== null ? Number(data.weight) : undefined,
+            height: data.height !== undefined && data.height !== null ? Number(data.height) : undefined
           };
           const { data: resMin, error: errMin } = await supabase
             .from('leads')

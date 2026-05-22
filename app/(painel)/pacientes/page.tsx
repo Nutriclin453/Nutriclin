@@ -67,6 +67,9 @@ export default function Pacientes() {
         if (nameKey && patientNames.has(nameKey)) continue;
 
         try {
+          const leadAge = lead.age !== undefined && lead.age !== null ? lead.age : lead.idade;
+          const parsedLeadAge = leadAge !== undefined && leadAge !== null && leadAge !== '' ? parseInt(leadAge.toString(), 10) : undefined;
+
           await PatientService.create({
             name: lead.name,
             email: lead.email || '',
@@ -75,6 +78,8 @@ export default function Pacientes() {
             status: 'Ativo',
             weight: lead.weight || lead.peso,
             height: lead.height || lead.altura,
+            age: isNaN(parsedLeadAge as any) ? undefined : parsedLeadAge,
+            idade: isNaN(parsedLeadAge as any) ? undefined : parsedLeadAge,
             createdAt: lead.created_at || new Date().toISOString()
           } as any);
           mutated = true;
