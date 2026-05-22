@@ -9,8 +9,14 @@ CREATE TABLE IF NOT EXISTS public.leads (
     age INTEGER,
     weight NUMERIC,
     height NUMERIC,
+    gender TEXT,
+    genero TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Ensure columns exist if table was already created
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS genero TEXT;
 
 -- Enable Row Level Security
 ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;

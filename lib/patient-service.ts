@@ -100,6 +100,13 @@ export const PatientService = {
           if (payload.birth_date !== undefined) {
             cleanPayload.birth_date = payload.birth_date;
           }
+          if (payload.gender !== undefined) {
+            cleanPayload.gender = payload.gender;
+          } else if ((data as any).gender !== undefined) {
+            cleanPayload.gender = (data as any).gender;
+          } else if ((data as any).genero !== undefined) {
+            cleanPayload.gender = (data as any).genero;
+          }
           const { data: retryPatient, error: retryError } = await supabase
             .from('patients')
             .insert([cleanPayload])
@@ -229,6 +236,18 @@ export const PatientService = {
         console.error('Supabase Error (getAll):', error);
         throw error;
       }
+
+      // Fetch all leads to enrich patients with weight, height, and gender from public triage if missing
+      let fetchedLeads: any[] = [];
+      try {
+        const { data: leadsData } = await supabase
+          .from('leads')
+          .select('*');
+        if (leadsData) fetchedLeads = leadsData;
+      } catch (e) {
+        console.warn('Could not fetch leads for patient enrichment:', e);
+      }
+
       return (data || []).map(p => {
         let calculatedAge: number | undefined = undefined;
         if (p.birth_date) {
@@ -237,12 +256,21 @@ export const PatientService = {
             calculatedAge = new Date().getFullYear() - birth.getFullYear();
           }
         }
+
+        const matchingLead = fetchedLeads.find(l => 
+          (l.email && p.email && l.email.toLowerCase().trim() === p.email.toLowerCase().trim()) ||
+          (l.name && p.name && l.name.toLowerCase().trim() === p.name.toLowerCase().trim())
+        );
+
         return {
           ...p,
           lastVisit: p.last_visit ? { toDate: () => new Date(p.last_visit) } : null,
           birthDate: p.birth_date,
-          age: calculatedAge ?? p.age ?? p.idade,
-          idade: calculatedAge ?? p.idade ?? p.age,
+          age: calculatedAge ?? p.age ?? p.idade ?? matchingLead?.age ?? matchingLead?.idade,
+          idade: calculatedAge ?? p.idade ?? p.age ?? matchingLead?.idade ?? matchingLead?.age,
+          weight: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
+          height: p.height ?? p.altura ?? matchingLead?.height ?? matchingLead?.altura,
+          gender: p.gender ?? p.genero ?? matchingLead?.gender ?? matchingLead?.genero,
           createdBy: p.created_by,
           createdAt: p.created_at
         };
