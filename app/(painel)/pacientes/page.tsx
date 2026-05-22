@@ -296,33 +296,37 @@ export default function Pacientes() {
                                 if (!patient.id) return;
                                 setLoadingPatientId(patient.id);
                                 try {
-                                  // First delete any matching leads to prevent sync-back
-                                  if (!isMockEnabled()) {
-                                    if (patient.email) {
-                                      await supabase
-                                        .from('leads')
-                                        .delete()
-                                        .eq('email', patient.email);
-                                    }
-                                    if (patient.name) {
-                                      await supabase
-                                        .from('leads')
-                                        .delete()
-                                        .eq('name', patient.name);
-                                    }
-                                  } else {
-                                    // Clean mock leads too
-                                    try {
-                                      const mockLeadsStr = localStorage.getItem('mock_leads');
-                                      if (mockLeadsStr) {
-                                        const mockLeads = JSON.parse(mockLeadsStr);
-                                        const updatedLeads = mockLeads.filter((l: any) => 
-                                          (!patient.email || l.email?.toLowerCase().trim() !== patient.email?.toLowerCase().trim()) && 
-                                          (!patient.name || l.name?.toLowerCase().trim() !== patient.name?.toLowerCase().trim())
-                                        );
-                                        localStorage.setItem('mock_leads', JSON.stringify(updatedLeads));
+                                  // First delete any matching leads to prevent sync-back (best-effort)
+                                  try {
+                                    if (!isMockEnabled()) {
+                                      if (patient.email) {
+                                        await supabase
+                                          .from('leads')
+                                          .delete()
+                                          .eq('email', patient.email);
                                       }
-                                    } catch (_) {}
+                                      if (patient.name) {
+                                        await supabase
+                                          .from('leads')
+                                          .delete()
+                                          .eq('name', patient.name);
+                                      }
+                                    } else {
+                                      // Clean mock leads too
+                                      try {
+                                        const mockLeadsStr = localStorage.getItem('mock_leads');
+                                        if (mockLeadsStr) {
+                                          const mockLeads = JSON.parse(mockLeadsStr);
+                                          const updatedLeads = mockLeads.filter((l: any) => 
+                                            (!patient.email || l.email?.toLowerCase().trim() !== patient.email?.toLowerCase().trim()) && 
+                                            (!patient.name || l.name?.toLowerCase().trim() !== patient.name?.toLowerCase().trim())
+                                          );
+                                          localStorage.setItem('mock_leads', JSON.stringify(updatedLeads));
+                                        }
+                                      } catch (_) {}
+                                    }
+                                  } catch (leadDelErr) {
+                                    console.warn("Could not delete associated lead during patient deletion:", leadDelErr);
                                   }
 
                                   await PatientService.delete(patient.id);

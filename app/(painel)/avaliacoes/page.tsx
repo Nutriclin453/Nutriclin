@@ -479,26 +479,43 @@ export default function Avaliacoes() {
                         // Find this patient across the already loaded patients list
                         const matchedPatient = patients.find(p => p.name === selectedVal);
                         if (matchedPatient) {
-                          if (matchedPatient.weight) {
-                            setWeight(Number(matchedPatient.weight));
+                          const patientData = matchedPatient as any;
+
+                          // Safely extract weight / peso
+                          const rawWeight = patientData.weight ?? patientData.peso;
+                          if (rawWeight !== undefined && rawWeight !== null && rawWeight !== '') {
+                            const cleanedW = parseFloat(String(rawWeight).replace(',', '.'));
+                            if (!isNaN(cleanedW) && cleanedW > 0) {
+                              setWeight(cleanedW);
+                            }
                           }
-                          if (matchedPatient.height) {
-                            setHeight(Number(matchedPatient.height));
+
+                          // Safely extract height / altura
+                          const rawHeight = patientData.height ?? patientData.altura;
+                          if (rawHeight !== undefined && rawHeight !== null && rawHeight !== '') {
+                            const cleanedH = parseFloat(String(rawHeight).replace(',', '.'));
+                            if (!isNaN(cleanedH) && cleanedH > 0) {
+                              setHeight(cleanedH);
+                            }
                           }
+
                           if (matchedPatient.goal) {
                             setObjective(matchedPatient.goal);
                           }
-                          const patientGender = matchedPatient.gender || (matchedPatient as any).genero;
+
+                          const patientGender = matchedPatient.gender || patientData.genero;
                           if (patientGender) {
                             const stringGender = String(patientGender).toLowerCase().trim();
                             const normalizedGender = (stringGender === 'feminino' || stringGender === 'female' || stringGender.startsWith('fem')) ? 'female' : 'male';
                             setGender(normalizedGender);
                           }
                           
-                          const patientData = matchedPatient as any;
                           const mappedAge = patientData.idade ?? patientData.age;
                           if (mappedAge !== undefined && mappedAge !== null && mappedAge !== '') {
-                            setAge(Number(mappedAge));
+                            const parsedAge = parseInt(String(mappedAge), 10);
+                            if (!isNaN(parsedAge) && parsedAge > 0) {
+                              setAge(parsedAge);
+                            }
                           }
                         }
                       }}
