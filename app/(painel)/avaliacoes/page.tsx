@@ -11,7 +11,8 @@ import {
   Trash2,
   Loader2,
   TrendingUp,
-  Edit
+  Edit,
+  Printer
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -97,6 +98,40 @@ export default function Avaliacoes() {
     }
     return '--.-';
   })();
+
+  const bodyComposition = React.useMemo(() => {
+    const { tricipital, subescapular, subaxilar, peitoral, abdomen, suprailiaca, coxa } = folds;
+    if (tricipital && subescapular && subaxilar && peitoral && abdomen && suprailiaca && coxa && age && weight) {
+      const sum7 = tricipital + subescapular + subaxilar + peitoral + abdomen + suprailiaca + coxa;
+      let density = 0;
+      if (gender === 'male') {
+        density = 1.112 - (0.00043499 * sum7) + (0.00000055 * sum7 * sum7) - (0.00028826 * Number(age));
+      } else {
+        density = 1.097 - (0.00046971 * sum7) + (0.00000056 * sum7 * sum7) - (0.00012828 * Number(age));
+      }
+      const bf = ((4.95 / density) - 4.50) * 100;
+      const fatKg = Number(weight) * (bf / 100);
+      const leanKg = Number(weight) - fatKg;
+      const leanPct = 100 - bf;
+
+      return {
+        hasData: true,
+        density: density.toFixed(4),
+        bf: bf.toFixed(1),
+        fatKg: fatKg.toFixed(1),
+        leanKg: leanKg.toFixed(1),
+        leanPct: leanPct.toFixed(1)
+      };
+    }
+    return {
+      hasData: false,
+      density: '--.----',
+      bf: '--.-',
+      fatKg: '--.-',
+      leanKg: '--.-',
+      leanPct: '--.-'
+    };
+  }, [folds, age, weight, gender]);
 
   const fetchEvaluations = async () => {
     setFetchLoading(true);
@@ -379,7 +414,7 @@ export default function Avaliacoes() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-8"
+        className="space-y-8 print:hidden"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
@@ -387,6 +422,15 @@ export default function Avaliacoes() {
                 <p className="text-on-surface-variant text-sm mt-1">Registre uma nova sessão antropométrica e de composição corporal.</p>
               </div>
               <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => window.print()}
+                  disabled={!patientName}
+                  type="button"
+                  className="bg-surface-container-high border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-bold hover:bg-surface-dim active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Printer size={20} className="text-on-surface-variant" />
+                  Imprimir PDF
+                </button>
                 <button 
                   onClick={handleClearForm}
                   type="button"
@@ -924,6 +968,224 @@ export default function Avaliacoes() {
               </div>
             </div>
       </motion.div>
+
+      {/* Print-Only Layout */}
+      {patientName && (
+        <div className="hidden print:block text-slate-900 bg-white font-sans max-w-4xl mx-auto p-8 space-y-8">
+          {/* Header */}
+          <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-6">
+            <div>
+              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRM Nutrição</h1>
+              <p className="text-sm text-slate-500 font-medium">Dr. Antônio Feitoza - Nutricionista</p>
+            </div>
+            <div className="text-right">
+              <h2 className="text-xl font-bold text-slate-800">Ficha de Avaliação Antropométrica</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+          </div>
+
+          {/* Patient Details Info */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Paciente</p>
+              <p className="text-slate-800 font-extrabold text-lg">{patientName}</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Gênero</p>
+              <p className="text-slate-800 font-extrabold text-lg">
+                {gender === 'male' ? 'Masculino' : 'Feminino'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Idade</p>
+              <p className="text-slate-800 font-extrabold text-lg">
+                {age ? `${age} anos` : '-'}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Objetivo</p>
+              <p className="text-slate-800 font-bold text-base">
+                {objective || '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Data do Atendimento</p>
+              <p className="text-slate-800 font-bold text-base">
+                {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+          </div>
+
+          {/* Anthropometric Results */}
+          <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50 space-y-4 [page-break-inside:avoid]">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-dashed border-slate-200 pb-2">
+              Dados Antropométricos e Gasto Energético
+            </h3>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-center">
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Peso Atual</p>
+                <p className="text-base font-black text-slate-800 mt-1">{weight ? `${weight} kg` : '-'}</p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Altura</p>
+                <p className="text-base font-black text-slate-800 mt-1">{height ? `${height} cm` : '-'}</p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">IMC</p>
+                <p className="text-base font-black text-emerald-700 mt-1">{bmiValue} <span className="text-xs font-medium text-slate-400">kg/m²</span></p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gordura Corporal (BF)</p>
+                <p className="text-base font-black text-emerald-800 mt-1">
+                  {bodyFatValue !== '--.-' ? `${bodyFatValue}%` : '-'}
+                </p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl col-span-2 lg:col-span-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gasto Diário (TDEE)</p>
+                <p className="text-sm font-black text-slate-800 mt-1">{tdeeValue} <span className="text-[9px] text-slate-400">kcal</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Body Composition Results */}
+          <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50 space-y-4 [page-break-inside:avoid]">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-dashed border-slate-200 pb-2">
+              Resultados da Composição Corporal
+            </h3>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 text-center">
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Densidade Corporal</p>
+                <p className="text-base font-black text-slate-800 mt-1">
+                  {bodyComposition.density !== '--.----' ? `${bodyComposition.density} g/cm³` : '-'}
+                </p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Percentual de Gordura (%BF)</p>
+                <p className="text-base font-black text-rose-600 mt-1">
+                  {bodyComposition.bf !== '--.-' ? `${bodyComposition.bf}%` : '-'}
+                </p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gordura Absoluta</p>
+                <p className="text-base font-black text-amber-700 mt-1">
+                  {bodyComposition.fatKg !== '--.-' ? `${bodyComposition.fatKg} kg` : '-'}
+                </p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Massa Magra Absoluta</p>
+                <p className="text-base font-black text-emerald-700 mt-1">
+                  {bodyComposition.leanKg !== '--.-' ? `${bodyComposition.leanKg} kg` : '-'}
+                </p>
+              </div>
+              <div className="p-3 bg-white border border-slate-100 rounded-xl col-span-2 lg:col-span-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Percentual Massa Magra</p>
+                <p className="text-base font-black text-emerald-800 mt-1">
+                  {bodyComposition.leanPct !== '--.-' ? `${bodyComposition.leanPct}%` : '-'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Perímetros Table */}
+            <div className="border border-slate-200 rounded-2xl p-6 bg-white space-y-4 [page-break-inside:avoid]">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">
+                Perímetros e Medidas
+              </h3>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
+                    <th className="text-left pb-2">Região Corporal</th>
+                    <th className="text-right pb-2">Circunferência (cm)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  <tr>
+                    <td className="py-2.5 font-bold">Cintura</td>
+                    <td className="py-2.5 text-right font-black text-slate-900">{waist ? `${waist} cm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 font-bold">Abdominal</td>
+                    <td className="py-2.5 text-right font-black text-slate-900">{abdominal ? `${abdominal} cm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 font-bold">Pescoço</td>
+                    <td className="py-2.5 text-right font-black text-slate-900">{neck ? `${neck} cm` : '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Dobras Cutâneas Table */}
+            <div className="border border-slate-200 rounded-2xl p-6 bg-white space-y-4 [page-break-inside:avoid]">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">
+                Dobras Cutâneas
+              </h3>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-[10px] font-black uppercase text-slate-400">
+                    <th className="text-left pb-2">Dobra Cutânea</th>
+                    <th className="text-right pb-2">Espessura (mm)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                  <tr>
+                    <td className="py-1.5 font-semibold">Tricipital</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.tricipital ? `${folds.tricipital} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Subescapular</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.subescapular ? `${folds.subescapular} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Subaxilar</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.subaxilar ? `${folds.subaxilar} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Peitoral</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.peitoral ? `${folds.peitoral} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Abdômen</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.abdomen ? `${folds.abdomen} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Suprailíaca</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.suprailiaca ? `${folds.suprailiaca} mm` : '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-1.5 font-semibold">Coxa</td>
+                    <td className="py-1.5 text-right font-bold text-slate-900">{folds.coxa ? `${folds.coxa} mm` : '-'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* General Notes and Guidelines */}
+          {attendanceNote && (
+            <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50 space-y-2 [page-break-inside:avoid]">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">
+                Anotações e Observações do Atendimento
+              </h3>
+              <p className="text-slate-700 text-sm whitespace-pre-wrap font-medium leading-relaxed">{attendanceNote}</p>
+            </div>
+          )}
+
+          {/* Signatures */}
+          <div className="pt-12 flex justify-between items-end border-t border-slate-200 text-xs text-slate-400 [page-break-inside:avoid]">
+            <div>
+              <p>Documento antropométrico gerado digitalmente pelo sistema CRM Nutrição.</p>
+              <p>© 2026 CRM Nutrição - Dr. Antônio Feitoza.</p>
+            </div>
+            <div className="text-right border-t border-dashed border-slate-400 pt-2 w-48">
+              <p className="font-bold text-slate-600 font-sans">Assinatura do Profissional</p>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
