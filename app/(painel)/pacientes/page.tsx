@@ -80,6 +80,7 @@ export default function Pacientes() {
             height: lead.height || lead.altura,
             age: isNaN(parsedLeadAge as any) ? undefined : parsedLeadAge,
             idade: isNaN(parsedLeadAge as any) ? undefined : parsedLeadAge,
+            gender: lead.gender || lead.genero || undefined,
             createdAt: lead.created_at || new Date().toISOString()
           } as any);
           mutated = true;

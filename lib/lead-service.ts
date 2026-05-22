@@ -11,6 +11,7 @@ export interface Lead {
   age?: number;
   weight?: number;
   height?: number;
+  gender?: string;
   created_at?: string;
 }
 
@@ -76,7 +77,9 @@ export const LeadService = {
         weight: data.weight,
         peso: data.weight,
         height: data.height,
-        altura: data.height
+        altura: data.height,
+        gender: data.gender,
+        genero: data.gender
       };
       
       if (data.goal) {
@@ -111,7 +114,8 @@ export const LeadService = {
             service_type: data.service_type,
             age: data.age,
             weight: data.weight,
-            height: data.height
+            height: data.height,
+            gender: data.gender
           };
           if (dNutriId) {
             engPayload.nutritionist_id = dNutriId;
@@ -134,7 +138,8 @@ export const LeadService = {
             tipo_atendimento: data.service_type,
             idade: data.age,
             peso: data.weight,
-            altura: data.height
+            altura: data.height,
+            genero: data.gender
           };
           if (dNutriId) {
             ptPayload.nutritionist_id = dNutriId;
@@ -157,7 +162,8 @@ export const LeadService = {
             service_type: data.service_type,
             age: data.age !== undefined && data.age !== null ? Number(data.age) : undefined,
             weight: data.weight !== undefined && data.weight !== null ? Number(data.weight) : undefined,
-            height: data.height !== undefined && data.height !== null ? Number(data.height) : undefined
+            height: data.height !== undefined && data.height !== null ? Number(data.height) : undefined,
+            gender: data.gender
           };
           const { data: resMin, error: errMin } = await supabase
             .from('leads')

@@ -45,6 +45,7 @@ export const createBrowserSupabase = () => {
           console.warn('Stale session detected in wrapped getUser, clearing local storage:', msg);
           clearStaleSession();
           client.auth.signOut().catch(() => {});
+          return { data: { user: null }, error: null };
         }
       }
       return res;
@@ -58,6 +59,7 @@ export const createBrowserSupabase = () => {
          console.warn('Stale session exception in wrapped getUser, clearing local storage:', msg);
          clearStaleSession();
          client.auth.signOut().catch(() => {});
+         return { data: { user: null }, error: null };
       }
       throw err;
     }
@@ -77,6 +79,7 @@ export const createBrowserSupabase = () => {
           console.warn('Stale session detected in wrapped getSession, clearing local storage:', msg);
           clearStaleSession();
           client.auth.signOut().catch(() => {});
+          return { data: { session: null }, error: null };
         }
       }
       return res;
@@ -90,6 +93,7 @@ export const createBrowserSupabase = () => {
          console.warn('Stale session exception in wrapped getSession, clearing local storage:', msg);
          clearStaleSession();
          client.auth.signOut().catch(() => {});
+         return { data: { session: null }, error: null };
       }
       throw err;
     }

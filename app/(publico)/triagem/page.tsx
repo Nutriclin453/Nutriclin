@@ -62,6 +62,7 @@ export default function TriagemPage() {
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [goal, setGoal] = useState('Emagrecimento');
+  const [gender, setGender] = useState<'Masculino' | 'Feminino' | ''>('');
   
   // Statuses
   const [loading, setLoading] = useState(false);
@@ -109,8 +110,14 @@ export default function TriagemPage() {
 
   const handleSubmitFinal = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg('');
+
+    if (!gender) {
+      setErrorMsg('Por favor, selecione o seu gênero.');
+      return;
+    }
+
+    setLoading(true);
 
     const parsedAge = age ? parseInt(age, 10) : undefined;
     const parsedWeight = weight ? parseFloat(weight.replace(',', '.')) : undefined;
@@ -125,7 +132,8 @@ export default function TriagemPage() {
         age: parsedAge,
         weight: parsedWeight,
         height: parsedHeight,
-        goal: goal
+        goal: goal,
+        gender: gender
       });
 
       // Try to auto-create patient direct (working beautifully in mock mode, and if RLS allows)
@@ -140,6 +148,7 @@ export default function TriagemPage() {
           height: parsedHeight,
           age: parsedAge,
           idade: parsedAge,
+          gender: gender as any,
         } as any);
       } catch (patientErr) {
         console.warn('Could not insert patient directly in public page, will be synced upon dietitian login:', patientErr);
@@ -467,6 +476,39 @@ export default function TriagemPage() {
                         />
                       </div>
 
+                    </div>
+
+                    {/* Gender Selection */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider pl-1 font-mono">
+                        Gênero *
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          id="btn-gender-masculino"
+                          onClick={() => setGender('Masculino')}
+                          className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            gender === 'Masculino'
+                              ? 'border-primary bg-primary/10 text-primary font-black shadow-lg shadow-primary/5'
+                              : 'border-slate-800 bg-slate-950/40 text-slate-450 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          ♂️ Masculino
+                        </button>
+                        <button
+                          type="button"
+                          id="btn-gender-feminino"
+                          onClick={() => setGender('Feminino')}
+                          className={`py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            gender === 'Feminino'
+                              ? 'border-primary bg-primary/10 text-primary font-black shadow-lg shadow-primary/5'
+                              : 'border-slate-800 bg-slate-950/40 text-slate-455 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          ♀️ Feminino
+                        </button>
+                      </div>
                     </div>
 
                     {/* Goal Dropdown Selection */}

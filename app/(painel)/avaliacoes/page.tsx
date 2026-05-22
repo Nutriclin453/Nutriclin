@@ -488,8 +488,10 @@ export default function Avaliacoes() {
                           if (matchedPatient.goal) {
                             setObjective(matchedPatient.goal);
                           }
-                          if (matchedPatient.gender) {
-                            const normalizedGender = matchedPatient.gender.toLowerCase() === 'feminino' ? 'female' : 'male';
+                          const patientGender = matchedPatient.gender || (matchedPatient as any).genero;
+                          if (patientGender) {
+                            const stringGender = String(patientGender).toLowerCase().trim();
+                            const normalizedGender = (stringGender === 'feminino' || stringGender === 'female' || stringGender.startsWith('fem')) ? 'female' : 'male';
                             setGender(normalizedGender);
                           }
                           
