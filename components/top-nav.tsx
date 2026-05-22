@@ -40,9 +40,23 @@ export function TopNav() {
   }, []);
 
   useEffect(() => {
+    const handleSyncClear = () => {
+      setNotifications([]);
+      setHasUnread(false);
+    };
+    window.addEventListener('sync-notifications-clear', handleSyncClear);
+    return () => {
+      window.removeEventListener('sync-notifications-clear', handleSyncClear);
+    };
+  }, []);
+
+  useEffect(() => {
     // Check initial unread notifications
     const fetchUnread = async () => {
       try {
+        const lastClearedStr = typeof window !== 'undefined' ? localStorage.getItem('notifications_last_cleared_at') : null;
+        const lastCleared = lastClearedStr ? new Date(lastClearedStr) : null;
+
         if (isMockEnabled()) {
           const stored = localStorage.getItem('mock_notifications');
           let list = [];
@@ -67,6 +81,12 @@ export function TopNav() {
             ];
             localStorage.setItem('mock_notifications', JSON.stringify(list));
           }
+
+          // Filter out older notifications based on last cleared time
+          if (lastCleared) {
+            list = list.filter((n: any) => new Date(n.created_at) > lastCleared);
+          }
+
           setNotifications(list);
           const unreadCount = list.filter((n: any) => !n.read).length;
           setHasUnread(unreadCount > 0);
@@ -80,8 +100,12 @@ export function TopNav() {
           .limit(10);
           
         if (!error && data) {
-          setNotifications(data);
-          const unreadCount = data.filter(n => !n.read).length;
+          let list = data;
+          if (lastCleared) {
+            list = data.filter(n => new Date(n.created_at) > lastCleared);
+          }
+          setNotifications(list);
+          const unreadCount = list.filter(n => !n.read).length;
           setHasUnread(unreadCount > 0);
         }
       } catch (err) {
@@ -140,17 +164,19 @@ export function TopNav() {
 
   const handleClearAll = async () => {
     try {
+      // Set the global "last cleared at" timestamp to bypass any caching or delay
+      const clearTime = new Date().toISOString();
+      localStorage.setItem('notifications_last_cleared_at', clearTime);
+
       if (isMockEnabled()) {
         localStorage.setItem('mock_notifications', JSON.stringify([]));
         setNotifications([]);
         setHasUnread(false);
+        window.dispatchEvent(new Event('sync-notifications-clear'));
         return;
       }
 
-      // We delete all non-read and read notifications in the Database or mark all of them as read.
-      // To satisfy Both delete and mark as read requirements:
-      // First, attempt to delete all items in our local notifications array or all items in DB entirely.
-      // Let's delete all matching IDs first.
+      // Execute actual delete/update in Supabase database
       if (notifications.length > 0) {
         const idsToClear = notifications.map(n => n.id);
         const { error: deleteError } = await supabase
@@ -159,8 +185,7 @@ export function TopNav() {
           .in('id', idsToClear);
 
         if (deleteError) {
-          console.warn('Could not delete individual notifications, trying update filter:', deleteError);
-          // Fallback, update them all to read: true
+          console.warn('Could not delete individual notifications from DB, marking as read fallback:', deleteError);
           await supabase
             .from('notifications')
             .update({ read: true })
@@ -168,19 +193,23 @@ export function TopNav() {
         }
       }
 
-      // Also clean up any other ones by executing a delete on any unread notifications
+      // Deleting any other unread/read rows from DB 
       const { error: cleanAllError } = await supabase
         .from('notifications')
         .delete()
-        .eq('read', false);
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (cleanAllError) {
-        // Fallback: update any unread to read in the DB
+        console.warn('Full delete failed, updating to read fallback:', cleanAllError);
         await supabase
           .from('notifications')
           .update({ read: true })
-          .eq('read', false);
+          .neq('id', '00000000-0000-0000-0000-000000000000');
       }
+
+      // Dispatch real-time global clean event & force router refresh to clear Next cached paths
+      window.dispatchEvent(new Event('sync-notifications-clear'));
+      router.refresh();
     } catch (err) {
       console.error('Error clearing notifications:', err);
     } finally {
