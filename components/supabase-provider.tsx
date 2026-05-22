@@ -54,13 +54,53 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.warn('Session retrieval encountered error:', error);
+        const errMsg = error.message || '';
+        if (
+          errMsg.includes('Invalid Refresh Token') || 
+          errMsg.includes('Refresh Token Not Found') || 
+          errMsg.includes('refresh_token_not_found') || 
+          error.status === 400 || 
+          error.status === 401
+        ) {
+          if (typeof window !== 'undefined') {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
+                localStorage.removeItem(key);
+              }
+            }
+          }
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      const session = data?.session || null;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     }).catch((err) => {
       console.error('Error in getSession, setting forceMock:', err);
       const msg = err.message || String(err);
+      if (msg.includes('Invalid Refresh Token') || msg.includes('Refresh Token Not Found') || msg.includes('refresh_token_not_found')) {
+        if (typeof window !== 'undefined') {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
         setForceMock(true);
         if (typeof window !== 'undefined') {

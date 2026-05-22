@@ -134,68 +134,153 @@ const getDefaultMeals = (): Meal[] =>
   }));
 
 const FOOD_DATABASE = [
-  { names: ["frango"], p: 0.31, c: 0, f: 0.036, isUnit: false },
-  { names: ["arroz"], p: 0.025, c: 0.28, f: 0.002, isUnit: false },
-  { names: ["feijão", "feijao"], p: 0.048, c: 0.136, f: 0.005, isUnit: false },
-  { names: ["ovo", "ovos"], p: 6, c: 0.5, f: 5, isUnit: true },
-  { names: ["batata", "mandioca"], p: 0.02, c: 0.2, f: 0, isUnit: false },
-  { names: ["whey"], p: 0.8, c: 0.1, f: 0.05, isUnit: false },
-  {
-    names: ["carne", "patinho", "boi", "bife"],
-    p: 0.3,
-    c: 0,
-    f: 0.05,
-    isUnit: false,
-  },
-  { names: ["pão", "pao"], p: 2.5, c: 12, f: 1, isUnit: true },
-  { names: ["leite"], p: 0.03, c: 0.05, f: 0.03, isUnit: false },
-  { names: ["banana"], p: 1.3, c: 27, f: 0.3, isUnit: true },
-  { names: ["aveia"], p: 0.14, c: 0.6, f: 0.07, isUnit: false },
-  { names: ["azeite"], p: 0, c: 0, f: 1, isUnit: false },
-  {
-    names: ["peixe", "tilápia", "tilapia"],
-    p: 0.26,
-    c: 0,
-    f: 0.02,
-    isUnit: false,
-  },
-  { names: ["macarrão", "macarrao"], p: 0.05, c: 0.3, f: 0.01, isUnit: false },
-  { names: ["iogurte"], p: 0.04, c: 0.05, f: 0.03, isUnit: false },
-  { names: ["abacate"], p: 0.02, c: 0.09, f: 0.15, isUnit: false },
-  {
-    names: ["amendoim", "pasta de amendoim"],
-    p: 0.25,
-    c: 0.2,
-    f: 0.5,
-    isUnit: false,
-  },
-  { names: ["castanha", "nozes"], p: 0.14, c: 0.14, f: 0.66, isUnit: false },
-  { names: ["maçã", "maca"], p: 0.3, c: 14, f: 0.2, isUnit: true },
-  { names: ["mamão", "mamao"], p: 0.5, c: 11, f: 0.1, isUnit: true },
+  // Proteínas (Carnes, aves, peixes e ovos)
+  { names: ["frango", "frango grelhado", "peito de frango"], p: 0.315, c: 0.0, f: 0.03, isUnit: false },
+  { names: ["carne", "boi", "bife", "carne vermelha", "alcatra"], p: 0.319, c: 0.0, f: 0.116, isUnit: false },
+  { names: ["patinho moído", "patinho moido", "patinho"], p: 0.359, c: 0.0, f: 0.073, isUnit: false },
+  { names: ["contra filé", "contra file"], p: 0.299, c: 0.0, f: 0.15, isUnit: false },
+  { names: ["lombo", "lombo de porco", "suíno", "suino", "porco"], p: 0.36, c: 0.0, f: 0.09, isUnit: false },
+  { names: ["peixe", "tilápia", "tilapia", "filé de tilápia", "file de tilapia"], p: 0.26, c: 0.0, f: 0.02, isUnit: false },
+  { names: ["salmão", "salmao"], p: 0.23, c: 0.0, f: 0.14, isUnit: false },
+  { names: ["atum"], p: 0.26, c: 0.0, f: 0.01, isUnit: false },
+  { names: ["ovo", "ovos", "ovo cozido"], p: 6.0, c: 0.5, f: 5.0, isUnit: true },
+  { names: ["clara", "clara de ovo"], p: 3.6, c: 0.2, f: 0.0, isUnit: true },
+
+  // Laticínios e derivados
+  { names: ["leite", "leite integral"], p: 0.03, c: 0.05, f: 0.03, isUnit: false },
+  { names: ["leite desnatado"], p: 0.032, c: 0.047, f: 0.001, isUnit: false },
+  { names: ["cottage", "queijo cottage"], p: 0.11, c: 0.03, f: 0.045, isUnit: false },
+  { names: ["minas frescal", "queijo minas"], p: 0.174, c: 0.032, f: 0.20, isUnit: false },
+  { names: ["mussarela", "queijo mussarela"], p: 0.226, c: 0.03, f: 0.25, isUnit: false },
+  { names: ["iogurte", "iogurte natural", "iogurte integral"], p: 0.035, c: 0.045, f: 0.03, isUnit: false },
+  { names: ["iogurte desnatado"], p: 0.04, c: 0.06, f: 0.001, isUnit: false },
+  { names: ["requeijão leve", "requeijao leve"], p: 0.09, c: 0.03, f: 0.12, isUnit: false },
+
+  // Cereais, tubérculos e pães (Carboidratos)
+  { names: ["arroz", "arroz branco"], p: 0.025, c: 0.28, f: 0.002, isUnit: false },
+  { names: ["arroz integral"], p: 0.026, c: 0.258, f: 0.01, isUnit: false },
+  { names: ["batata doce", "batatadoce"], p: 0.015, c: 0.20, f: 0.001, isUnit: false },
+  { names: ["batata", "batata inglesa"], p: 0.02, c: 0.20, f: 0.0, isUnit: false },
+  { names: ["mandioca", "aipim", "macaxeira"], p: 0.015, c: 0.38, f: 0.003, isUnit: false },
+  { names: ["macarrão", "macarrao"], p: 0.058, c: 0.308, f: 0.009, isUnit: false },
+  { names: ["cuscuz"], p: 0.023, c: 0.23, f: 0.002, isUnit: false },
+  { names: ["tapioca"], p: 0.001, c: 0.54, f: 0.0, isUnit: false },
+  { names: ["pão francês", "pao frances", "pão de sal"], p: 4.0, c: 29.3, f: 1.55, isUnit: true },
+  { names: ["pão integral", "pao integral"], p: 2.5, c: 12.0, f: 1.0, isUnit: true },
+  { names: ["pão de queijo", "pao de queijo"], p: 0.051, c: 0.342, f: 0.13, isUnit: false },
+  { names: ["aveia", "aveia em flocos"], p: 0.14, c: 0.60, f: 0.07, isUnit: false },
+  { names: ["granola"], p: 0.10, c: 0.68, f: 0.09, isUnit: false },
+
+  // Leguminosas e oleaginosas
+  { names: ["feijão", "feijao", "feijão carioca"], p: 0.048, c: 0.136, f: 0.005, isUnit: false },
+  { names: ["feijão preto", "feijao preto"], p: 0.045, c: 0.14, f: 0.005, isUnit: false },
+  { names: ["lentilha"], p: 0.063, c: 0.163, f: 0.005, isUnit: false },
+  { names: ["grão de bico", "grao de bico"], p: 0.07, c: 0.20, f: 0.025, isUnit: false },
+  { names: ["castanha do pará", "castanha do para"], p: 0.14, c: 0.15, f: 0.63, isUnit: false },
+  { names: ["castanha", "nozes", "castanhas", "amendoa", "amêndoas", "castanha de caju"], p: 0.14, c: 0.14, f: 0.66, isUnit: false },
+  { names: ["pasta de amendoim", "amendoim"], p: 0.25, c: 0.20, f: 0.50, isUnit: false },
+  { names: ["azeite", "azeite de oliva"], p: 0.0, c: 0.0, f: 1.0, isUnit: false },
+
+  // Frutas e vegetais
+  { names: ["banana"], p: 1.3, c: 27.0, f: 0.3, isUnit: true },
+  { names: ["maçã", "maca"], p: 0.3, c: 14.0, f: 0.2, isUnit: true },
+  { names: ["mamão", "mamao"], p: 0.5, c: 11.0, f: 0.1, isUnit: true },
+  { names: ["abacate"], p: 0.012, c: 0.06, f: 0.084, isUnit: false },
+  { names: ["laranja"], p: 0.9, c: 11.5, f: 0.1, isUnit: true },
+  { names: ["morango", "morangos"], p: 0.007, c: 0.08, f: 0.003, isUnit: false },
+  { names: ["melancia"], p: 0.009, c: 0.081, f: 0.001, isUnit: false },
+  { names: ["alface", "salada", "folhas"], p: 0.013, c: 0.028, f: 0.002, isUnit: false },
+  { names: ["brócolis", "brocolis"], p: 0.021, c: 0.044, f: 0.005, isUnit: false },
+  { names: ["tomate"], p: 0.011, c: 0.031, f: 0.002, isUnit: false },
+  { names: ["cenoura"], p: 0.013, c: 0.077, f: 0.002, isUnit: false },
+  { names: ["abobrinha"], p: 0.011, c: 0.03, f: 0.002, isUnit: false },
+
+  // Suplementos
+  { names: ["creatina"], p: 0.0, c: 0.0, f: 0.0, isUnit: false },
+  { names: ["ômega 3", "omega 3"], p: 0.0, c: 0.0, f: 1.0, isUnit: true },
+  { names: ["vitamina d"], p: 0.0, c: 0.0, f: 0.0, isUnit: true },
+  { names: ["multivitamínico", "multivitaminico"], p: 0.0, c: 0.0, f: 0.0, isUnit: true },
+  { names: ["glutamina"], p: 1.0, c: 0.0, f: 0.0, isUnit: false },
+  { names: ["bcaa"], p: 1.0, c: 0.0, f: 0.0, isUnit: false },
+  { names: ["maca peruana", "maca"], p: 0.12, c: 0.60, f: 0.01, isUnit: false }
 ];
 
 const FOOD_OPTIONS = [
-  { id: "frango", label: "Frango (g)", unit: "g" },
-  { id: "arroz", label: "Arroz (g)", unit: "g" },
-  { id: "feijão", label: "Feijão (g)", unit: "g" },
-  { id: "ovo", label: "Ovo (un)", unit: "un" },
-  { id: "batata", label: "Batata/Mandioca (g)", unit: "g" },
-  { id: "whey", label: "Whey Protein (g)", unit: "g" },
-  { id: "carne", label: "Carne Vermelha/Patinho (g)", unit: "g" },
-  { id: "pão", label: "Pão (fatia)", unit: "fatia" },
-  { id: "leite", label: "Leite (ml)", unit: "ml" },
-  { id: "banana", label: "Banana (un)", unit: "un" },
-  { id: "aveia", label: "Aveia (g)", unit: "g" },
-  { id: "azeite", label: "Azeite (ml)", unit: "ml" },
-  { id: "peixe", label: "Peixe/Tilápia (g)", unit: "g" },
-  { id: "macarrão", label: "Macarrão (g)", unit: "g" },
-  { id: "iogurte", label: "Iogurte (g/ml)", unit: "g" },
-  { id: "abacate", label: "Abacate (g)", unit: "g" },
-  { id: "amendoim", label: "Pasta de Amendoim (g)", unit: "g" },
-  { id: "castanha", label: "Castanha/Nozes (g)", unit: "g" },
-  { id: "maçã", label: "Maçã (un)", unit: "un" },
-  { id: "mamão", label: "Mamão (un)", unit: "un" },
-  { id: "custom", label: "Outro Alimento (Texto Livre)", unit: "" },
+  // --- Cereais, tubérculos e pães ---
+  { id: "arroz_branco", label: "🍚 [Cereais] Arroz Branco Cozido (g)", cleanName: "Arroz Branco", unit: "g" },
+  { id: "arroz_integral", label: "🌾 [Cereais] Arroz Integral Cozido (g)", cleanName: "Arroz Integral", unit: "g" },
+  { id: "pão", label: "🥖 [Cereais] Pão Francês (unidade)", cleanName: "Pão Francês", unit: "un" },
+  { id: "pão_integral", label: "🍞 [Cereais] Pão Integral (fatia)", cleanName: "Pão Integral", unit: "fatia" },
+  { id: "pão_de_queijo", label: "🧀 [Cereais] Pão de Queijo (g)", cleanName: "Pão de Queijo", unit: "g" },
+  { id: "batata", label: "🥔 [Cereais] Batata Inglesa Cozida (g)", cleanName: "Batata Inglesa", unit: "g" },
+  { id: "batata_doce", label: "🍠 [Cereais] Batata Doce Cozida (g)", cleanName: "Batata Doce", unit: "g" },
+  { id: "mandioca", label: "🌾 [Cereais] Mandioca Cozida (g)", cleanName: "Mandioca", unit: "g" },
+  { id: "macarrão", label: "🍝 [Cereais] Macarrão Cozido (g)", cleanName: "Macarrão", unit: "g" },
+  { id: "cuscuz", label: "🌽 [Cereais] Cuscuz Nordestino (g)", cleanName: "Cuscuz", unit: "g" },
+  { id: "tapioca", label: "🥞 [Cereais] Tapioca Pronta (g)", cleanName: "Tapioca", unit: "g" },
+  { id: "aveia", label: "🥣 [Cereais] Aveia em Flocos (g)", cleanName: "Aveia", unit: "g" },
+  { id: "granola", label: "🥣 [Cereais] Granola (g)", cleanName: "Granola", unit: "g" },
+
+  // --- Carnes, aves, peixes e ovos ---
+  { id: "frango", label: "🍗 [Carnes/Ovos] Peito de Frango Grelhado (g)", cleanName: "Frango Grelhado", unit: "g" },
+  { id: "patinho", label: "🥩 [Carnes/Ovos] Patinho Moído (g)", cleanName: "Patinho Moído", unit: "g" },
+  { id: "carne", label: "🍖 [Carnes/Ovos] Alcatra Grelhada (g)", cleanName: "Alcatra Grelhada", unit: "g" },
+  { id: "contra_file", label: "🥩 [Carnes/Ovos] Contra Filé Grelhado (g)", cleanName: "Contra Filé", unit: "g" },
+  { id: "lombo_porco", label: "🐖 [Carnes/Ovos] Lombo de Porco Assado (g)", cleanName: "Lombo de Porco", unit: "g" },
+  { id: "tilapia", label: "🐟 [Carnes/Ovos] Filé de Tilápia Grelhado (g)", cleanName: "Filé de Tilápia", unit: "g" },
+  { id: "salmao", label: "🐟 [Carnes/Ovos] Salmão Grelhado (g)", cleanName: "Salmão", unit: "g" },
+  { id: "atum", label: "🐟 [Carnes/Ovos] Atum em Conserva (g)", cleanName: "Atum", unit: "g" },
+  { id: "ovo", label: "🍳 [Carnes/Ovos] Ovo Cozido (unidade)", cleanName: "Ovo Cozido", unit: "un" },
+  { id: "clara", label: "🥚 [Carnes/Ovos] Clara de Ovo (unidade)", cleanName: "Clara de Ovo", unit: "un" },
+
+  // --- Leguminosas e oleaginosas ---
+  { id: "feijão", label: "🍲 [Leguminosas] Feijão Carioca Cozido (g)", cleanName: "Feijão Carioca", unit: "g" },
+  { id: "feijao_preto", label: "🍲 [Leguminosas] Feijão Preto Cozido (g)", cleanName: "Feijão Preto", unit: "g" },
+  { id: "lentilha", label: "🍲 [Leguminosas] Lentilha Cozida (g)", cleanName: "Lentilha", unit: "g" },
+  { id: "grao_de_bico", label: "🍲 [Leguminosas] Grão de Bico Cozido (g)", cleanName: "Grão de Bico", unit: "g" },
+  { id: "castanha_para", label: "🌰 [Oleaginosas] Castanha do Pará (g)", cleanName: "Castanha do Pará", unit: "g" },
+  { id: "castanha", label: "🌰 [Oleaginosas] Castanha de Caju (g)", cleanName: "Castanha de Caju", unit: "g" },
+  { id: "amendoim", label: "🥜 [Oleaginosas] Amendoim Torrado (g)", cleanName: "Amendoim", unit: "g" },
+  { id: "pasta_amendoim", label: "🥜 [Oleaginosas] Pasta de Amendoim (g)", cleanName: "Pasta de Amendoim", unit: "g" },
+  { id: "azeite", label: "🫒 [Gorduras] Azeite de Oliva (ml)", cleanName: "Azeite de Oliva", unit: "ml" },
+
+  // --- Laticínios e derivados ---
+  { id: "leite_integral", label: "🥛 [Laticínios] Leite Integral (ml)", cleanName: "Leite Integral", unit: "ml" },
+  { id: "leite", label: "🥛 [Laticínios] Leite Desnatado (ml)", cleanName: "Leite Desnatado", unit: "ml" },
+  { id: "cottage", label: "🧀 [Laticínios] Queijo Cottage (g)", cleanName: "Queijo Cottage", unit: "g" },
+  { id: "minas_prescal", label: "🧀 [Laticínios] Queijo Minas Frescal (g)", cleanName: "Queijo Minas", unit: "g" },
+  { id: "mussarela", label: "🧀 [Laticínios] Queijo Mussarela (g)", cleanName: "Queijo Mussarela", unit: "g" },
+  { id: "iogurte", label: "🥛 [Laticínios] Iogurte Natural Integral (g)", cleanName: "Iogurte Integral", unit: "g" },
+  { id: "iogurte_desnatado", label: "🥛 [Laticínios] Iogurte Desnatado (g)", cleanName: "Iogurte Desnatado", unit: "g" },
+  { id: "requeijao", label: "🧀 [Laticínios] Requeijão Cremoso Leve (g)", cleanName: "Requeijão Leve", unit: "g" },
+
+  // --- Frutas e verduras populares ---
+  { id: "banana", label: "🍌 [Frutas] Banana Prata (unidade)", cleanName: "Banana", unit: "un" },
+  { id: "maçã", label: "🍎 [Frutas] Maçã Fuji (unidade)", cleanName: "Maçã", unit: "un" },
+  { id: "mamão", label: "🥭 [Frutas] Mamão Formosa (unidade)", cleanName: "Mamão", unit: "un" },
+  { id: "abacate", label: "🥑 [Frutas] Abacate (g)", cleanName: "Abacate", unit: "g" },
+  { id: "laranja", label: "🍊 [Frutas] Laranja Pera (unidade)", cleanName: "Laranja", unit: "un" },
+  { id: "morango", label: "🍓 [Frutas] Morango (g)", cleanName: "Morango", unit: "g" },
+  { id: "melancia", label: "🍉 [Frutas] Melancia (g)", cleanName: "Melancia", unit: "g" },
+  { id: "alface", label: "🥬 [Verduras] Alface Crespa (g)", cleanName: "Alface", unit: "g" },
+  { id: "brócolis", label: "🥦 [Verduras] Brócolis Cozido (g)", cleanName: "Brócolis", unit: "g" },
+  { id: "tomate", label: "🍅 [Verduras] Tomate Salada (g)", cleanName: "Tomate", unit: "g" },
+  { id: "cenoura", label: "🥕 [Verduras] Cenoura Cozida (g)", cleanName: "Cenoura", unit: "g" },
+  { id: "abobrinha", label: "🥒 [Verduras] Abobrinha Cozida (g)", cleanName: "Abobrinha", unit: "g" },
+
+  { id: "custom", label: "✨ Outro Alimento (Texto Livre)", cleanName: "", unit: "" },
+];
+
+const SUPPLEMENT_OPTIONS = [
+  { id: "whey", label: "💊 [Suple] Whey Protein (g)", cleanName: "Whey Protein", unit: "g" },
+  { id: "creatina", label: "💊 [Suple] Creatina (g)", cleanName: "Creatina", unit: "g" },
+  { id: "omega3", label: "💊 [Suple] Ômega 3 (caps)", cleanName: "Ômega 3", unit: "caps" },
+  { id: "vitamina_d", label: "💊 [Suple] Vitamina D (UI)", cleanName: "Vitamina D", unit: "UI" },
+  { id: "multivitaminico", label: "💊 [Suple] Multivitamínico (caps)", cleanName: "Multivitamínico", unit: "caps" },
+  { id: "glutamina", label: "💊 [Suple] Glutamina (g)", cleanName: "Glutamina", unit: "g" },
+  { id: "bcaa", label: "💊 [Suple] BCAA (g)", cleanName: "BCAA", unit: "g" },
+  { id: "maca_peruana", label: "💊 [Suple] Maca Peruana (g)", cleanName: "Maca Peruana", unit: "g" },
+  { id: "custom_suple", label: "✨ Outro Suplemento (Texto Livre)", cleanName: "", unit: "" },
 ];
 
 function analyzeFoodItem(item: string) {
@@ -275,6 +360,10 @@ export default function Dieta() {
   const [newItemDrafts, setNewItemDrafts] = useState<
     Record<string, { food: string; qty: string; customName: string }>
   >({});
+  const [newSuppDrafts, setNewSuppDrafts] = useState<
+    Record<string, { food: string; qty: string; customName: string }>
+  >({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     fetchPatients();
@@ -474,6 +563,7 @@ export default function Dieta() {
     if (!selectedPatientId) return;
     setSaving(true);
     setErrorMsg("");
+    setSaveSuccess(false);
     try {
       const patient = patients.find((p) => p.id === selectedPatientId);
       const diet: Diet = {
@@ -486,7 +576,13 @@ export default function Dieta() {
         meals,
       };
       const saved = await DietService.save(diet);
-      if (saved) setDietId(saved.id);
+      if (saved) {
+        setDietId(saved.id);
+        setSaveSuccess(true);
+        setTimeout(() => {
+          setSaveSuccess(false);
+        }, 4000);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || "Erro ao salvar dieta.");
     } finally {
@@ -557,7 +653,7 @@ export default function Dieta() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-6 max-w-7xl mx-auto"
+        className="space-y-6 max-w-7xl mx-auto print:hidden"
       >
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4 border-b border-outline-variant/30">
@@ -578,7 +674,11 @@ export default function Dieta() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="bg-surface-container-highest text-on-surface hover:text-primary px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-surface-dim transition-all border border-outline-variant">
+            <button
+              onClick={() => window.print()}
+              disabled={!selectedPatientId}
+              className="bg-surface-container-highest text-on-surface hover:text-primary px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-surface-dim transition-all border border-outline-variant disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <FileText size={18} />
               Imprimir PDF
             </button>
@@ -596,6 +696,13 @@ export default function Dieta() {
             </button>
           </div>
         </div>
+
+        {saveSuccess && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-emerald-500 text-sm font-bold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            Plano alimentar salvo com sucesso!
+          </div>
+        )}
 
         {errorMsg && (
           <div className="bg-error/10 border border-error/20 p-4 rounded-xl text-error text-sm font-medium">
@@ -745,76 +852,113 @@ export default function Dieta() {
                     </div>
 
                     {/* Add new item input */}
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-outline-variant/30">
-                      <div className="w-5 h-5 flex items-center justify-center shrink-0 text-on-surface-variant hidden md:flex">
-                        <Plus size={14} />
-                      </div>
+                    <div className="flex flex-col gap-2 pt-2 border-t border-outline-variant/30">
+                      {/* Row 1: Alimentos */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0 text-on-surface-variant hidden md:flex">
+                          <Plus size={14} />
+                        </div>
 
-                      <select
-                        className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[140px]"
-                        value={newItemDrafts[meal.id]?.food || ""}
-                        onChange={(e) => {
-                          setNewItemDrafts({
-                            ...newItemDrafts,
-                            [meal.id]: {
-                              ...(newItemDrafts[meal.id] || {
-                                qty: "",
-                                customName: "",
-                              }),
-                              food: e.target.value,
-                            },
-                          });
-                        }}
-                      >
-                        <option value="" disabled>
-                          Selecione o alimento...
-                        </option>
-                        {FOOD_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.label}
+                        <select
+                          className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[140px]"
+                          value={newItemDrafts[meal.id]?.food || ""}
+                          onChange={(e) => {
+                            setNewItemDrafts({
+                              ...newItemDrafts,
+                              [meal.id]: {
+                                ...(newItemDrafts[meal.id] || {
+                                  qty: "",
+                                  customName: "",
+                                }),
+                                food: e.target.value,
+                              },
+                            });
+                          }}
+                        >
+                          <option value="" disabled>
+                            Selecione o alimento...
                           </option>
-                        ))}
-                      </select>
+                          {FOOD_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
 
-                      {newItemDrafts[meal.id]?.food === "custom" && (
+                        {newItemDrafts[meal.id]?.food === "custom" && (
+                          <input
+                            type="text"
+                            placeholder="Nome do alimento"
+                            className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[100px]"
+                            value={newItemDrafts[meal.id]?.customName || ""}
+                            onChange={(e) =>
+                              setNewItemDrafts({
+                                ...newItemDrafts,
+                                [meal.id]: {
+                                  ...newItemDrafts[meal.id],
+                                  customName: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        )}
+
                         <input
-                          type="text"
-                          placeholder="Nome do alimento"
-                          className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[100px]"
-                          value={newItemDrafts[meal.id]?.customName || ""}
+                          type="number"
+                          placeholder={
+                            FOOD_OPTIONS.find(
+                              (o) => o.id === newItemDrafts[meal.id]?.food,
+                            )?.unit || "Qtd."
+                          }
+                          className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary w-20"
+                          value={newItemDrafts[meal.id]?.qty || ""}
                           onChange={(e) =>
                             setNewItemDrafts({
                               ...newItemDrafts,
                               [meal.id]: {
                                 ...newItemDrafts[meal.id],
-                                customName: e.target.value,
+                                qty: e.target.value,
                               },
                             })
                           }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const draft = newItemDrafts[meal.id];
+                              if (
+                                draft?.food &&
+                                draft?.qty &&
+                                (draft.food !== "custom" || draft.customName)
+                              ) {
+                                const opt = FOOD_OPTIONS.find(
+                                  (o) => o.id === draft.food,
+                                );
+                                let itemText = "";
+                                if (draft.food === "custom") {
+                                  itemText = `${draft.qty} ${draft.customName}`;
+                                } else {
+                                  const itemNameStr = opt
+                                    ? (opt.cleanName || opt.label.split(" ")[0])
+                                    : draft.food;
+                                  const unit = opt ? opt.unit : "g";
+                                  itemText = `${draft.qty}${unit} ${itemNameStr}`;
+                                }
+                                addMealItem(meal.id, itemText);
+                                setNewItemDrafts({
+                                  ...newItemDrafts,
+                                  [meal.id]: {
+                                    food: "",
+                                    qty: "",
+                                    customName: "",
+                                  },
+                                });
+                              }
+                            }
+                          }}
                         />
-                      )}
 
-                      <input
-                        type="number"
-                        placeholder={
-                          FOOD_OPTIONS.find(
-                            (o) => o.id === newItemDrafts[meal.id]?.food,
-                          )?.unit || "Qtd."
-                        }
-                        className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary w-20"
-                        value={newItemDrafts[meal.id]?.qty || ""}
-                        onChange={(e) =>
-                          setNewItemDrafts({
-                            ...newItemDrafts,
-                            [meal.id]: {
-                              ...newItemDrafts[meal.id],
-                              qty: e.target.value,
-                            },
-                          })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
+                        <button
+                          onClick={() => {
                             const draft = newItemDrafts[meal.id];
                             if (
                               draft?.food &&
@@ -829,7 +973,7 @@ export default function Dieta() {
                                 itemText = `${draft.qty} ${draft.customName}`;
                               } else {
                                 const itemNameStr = opt
-                                  ? opt.label.split(" ")[0]
+                                  ? (opt.cleanName || opt.label.split(" ")[0])
                                   : draft.food;
                                 const unit = opt ? opt.unit : "g";
                                 itemText = `${draft.qty}${unit} ${itemNameStr}`;
@@ -837,55 +981,165 @@ export default function Dieta() {
                               addMealItem(meal.id, itemText);
                               setNewItemDrafts({
                                 ...newItemDrafts,
-                                [meal.id]: {
-                                  food: "",
-                                  qty: "",
-                                  customName: "",
-                                },
+                                [meal.id]: { food: "", qty: "", customName: "" },
                               });
                             }
+                          }}
+                          disabled={
+                            !newItemDrafts[meal.id]?.food ||
+                            !newItemDrafts[meal.id]?.qty ||
+                            (newItemDrafts[meal.id]?.food === "custom" &&
+                              !newItemDrafts[meal.id]?.customName)
                           }
-                        }}
-                      />
+                          className="bg-primary text-on-primary p-2 flex items-center justify-center rounded-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
 
-                      <button
-                        onClick={() => {
-                          const draft = newItemDrafts[meal.id];
-                          if (
-                            draft?.food &&
-                            draft?.qty &&
-                            (draft.food !== "custom" || draft.customName)
-                          ) {
-                            const opt = FOOD_OPTIONS.find(
-                              (o) => o.id === draft.food,
-                            );
-                            let itemText = "";
-                            if (draft.food === "custom") {
-                              itemText = `${draft.qty} ${draft.customName}`;
-                            } else {
-                              const itemNameStr = opt
-                                ? opt.label.split(" ")[0]
-                                : draft.food;
-                              const unit = opt ? opt.unit : "g";
-                              itemText = `${draft.qty}${unit} ${itemNameStr}`;
-                            }
-                            addMealItem(meal.id, itemText);
-                            setNewItemDrafts({
-                              ...newItemDrafts,
-                              [meal.id]: { food: "", qty: "", customName: "" },
+                      {/* Row 2: Suplementos */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="w-5 h-5 flex items-center justify-center shrink-0 text-on-surface-variant hidden md:flex">
+                          <Plus size={14} />
+                        </div>
+
+                        <select
+                          className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[140px]"
+                          value={newSuppDrafts[meal.id]?.food || ""}
+                          onChange={(e) => {
+                            setNewSuppDrafts({
+                              ...newSuppDrafts,
+                              [meal.id]: {
+                                ...(newSuppDrafts[meal.id] || {
+                                  qty: "",
+                                  customName: "",
+                                }),
+                                food: e.target.value,
+                              },
                             });
+                          }}
+                        >
+                          <option value="" disabled>
+                            Adicionar Suplemento...
+                          </option>
+                          {SUPPLEMENT_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+
+                        {newSuppDrafts[meal.id]?.food === "custom_suple" && (
+                          <input
+                            type="text"
+                            placeholder="Nome do suplemento"
+                            className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary flex-1 min-w-[100px]"
+                            value={newSuppDrafts[meal.id]?.customName || ""}
+                            onChange={(e) =>
+                              setNewSuppDrafts({
+                                ...newSuppDrafts,
+                                [meal.id]: {
+                                  ...newSuppDrafts[meal.id],
+                                  customName: e.target.value,
+                                },
+                              })
+                            }
+                          />
+                        )}
+
+                        <input
+                          type="number"
+                          placeholder={
+                            SUPPLEMENT_OPTIONS.find(
+                              (o) => o.id === newSuppDrafts[meal.id]?.food,
+                            )?.unit || "Qtd."
                           }
-                        }}
-                        disabled={
-                          !newItemDrafts[meal.id]?.food ||
-                          !newItemDrafts[meal.id]?.qty ||
-                          (newItemDrafts[meal.id]?.food === "custom" &&
-                            !newItemDrafts[meal.id]?.customName)
-                        }
-                        className="bg-primary text-on-primary p-2 flex items-center justify-center rounded-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                      >
-                        <Plus size={16} />
-                      </button>
+                          className="bg-surface border border-outline-variant text-sm font-medium text-on-surface rounded-lg p-2 outline-none focus:border-primary w-20"
+                          value={newSuppDrafts[meal.id]?.qty || ""}
+                          onChange={(e) =>
+                            setNewSuppDrafts({
+                              ...newSuppDrafts,
+                              [meal.id]: {
+                                ...newSuppDrafts[meal.id],
+                                qty: e.target.value,
+                              },
+                            })
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const draft = newSuppDrafts[meal.id];
+                              if (
+                                draft?.food &&
+                                draft?.qty &&
+                                (draft.food !== "custom_suple" || draft.customName)
+                              ) {
+                                const opt = SUPPLEMENT_OPTIONS.find(
+                                  (o) => o.id === draft.food,
+                                );
+                                let itemText = "";
+                                if (draft.food === "custom_suple") {
+                                  itemText = `${draft.qty} ${draft.customName}`;
+                                } else {
+                                  const itemNameStr = opt
+                                    ? (opt.cleanName || opt.label.split(" ")[0])
+                                    : draft.food;
+                                  const unit = opt ? opt.unit : "g";
+                                  itemText = `${draft.qty}${unit} ${itemNameStr}`;
+                                }
+                                addMealItem(meal.id, itemText);
+                                setNewSuppDrafts({
+                                  ...newSuppDrafts,
+                                  [meal.id]: {
+                                    food: "",
+                                    qty: "",
+                                    customName: "",
+                                  },
+                                });
+                              }
+                            }
+                          }}
+                        />
+
+                        <button
+                          onClick={() => {
+                            const draft = newSuppDrafts[meal.id];
+                            if (
+                              draft?.food &&
+                              draft?.qty &&
+                              (draft.food !== "custom_suple" || draft.customName)
+                            ) {
+                              const opt = SUPPLEMENT_OPTIONS.find(
+                                  (o) => o.id === draft.food,
+                                );
+                              let itemText = "";
+                              if (draft.food === "custom_suple") {
+                                itemText = `${draft.qty} ${draft.customName}`;
+                              } else {
+                                const itemNameStr = opt
+                                  ? (opt.cleanName || opt.label.split(" ")[0])
+                                  : draft.food;
+                                const unit = opt ? opt.unit : "g";
+                                itemText = `${draft.qty}${unit} ${itemNameStr}`;
+                              }
+                              addMealItem(meal.id, itemText);
+                              setNewSuppDrafts({
+                                ...newSuppDrafts,
+                                [meal.id]: { food: "", qty: "", customName: "" },
+                              });
+                            }
+                          }}
+                          disabled={
+                            !newSuppDrafts[meal.id]?.food ||
+                            !newSuppDrafts[meal.id]?.qty ||
+                            (newSuppDrafts[meal.id]?.food === "custom_suple" &&
+                              !newSuppDrafts[meal.id]?.customName)
+                          }
+                          className="bg-primary text-on-primary p-2 flex items-center justify-center rounded-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1026,6 +1280,123 @@ export default function Dieta() {
           </div>
         )}
       </motion.div>
+
+      {/* Print-Only Layout */}
+      {selectedPatientId && (
+        <div className="hidden print:block text-slate-900 bg-white font-sans max-w-4xl mx-auto p-8 space-y-8">
+          {/* Header */}
+          <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-6">
+            <div>
+              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRM Nutrição</h1>
+              <p className="text-sm text-slate-500 font-medium">Dr. Antônio Feitoza - Nutricionista</p>
+            </div>
+            <div className="text-right">
+              <h2 className="text-xl font-bold text-slate-800">Plano Alimentar Prescrito</h2>
+              <p className="text-xs text-slate-400 mt-1">{currentDateFormatted}</p>
+            </div>
+          </div>
+
+          {/* Patient Details Info */}
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Paciente</p>
+              <p className="text-slate-800 font-extrabold text-lg">
+                {patients.find((p) => p.id === selectedPatientId)?.name || "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider">Objetivo do Plano</p>
+              <p className="text-slate-800 font-extrabold text-lg">{goal}</p>
+            </div>
+          </div>
+
+          {/* Macros Summary Panel */}
+          <div className="border border-slate-100 rounded-2xl p-6 bg-slate-50/50 space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b border-dashed border-slate-200 pb-2">
+              Distribuição Nutricional Diária
+            </h3>
+            <div className="grid grid-cols-5 gap-4 text-center">
+              <div>
+                <p className="text-sm font-bold text-slate-800">{totalCalories} kcal</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">Meta Calórica</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">{macros.protein}g ({macros.proteinPct}%)</p>
+                <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">Proteínas</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">{macros.carbs}g ({macros.carbsPct}%)</p>
+                <p className="text-[10px] font-bold text-amber-600 uppercase mt-1">Carboidratos</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">{macros.fats}g ({macros.fatsPct}%)</p>
+                <p className="text-[10px] font-bold text-rose-600 uppercase mt-1">Gorduras</p>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">{macros.hydration} L</p>
+                <p className="text-[10px] font-bold text-sky-600 uppercase mt-1">Hidratação</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Meals Listing */}
+          <div className="space-y-6">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-2">
+              Refeições Recomendadas
+            </h3>
+            {meals.map((meal, index) => (
+              <div key={meal.id} className="border border-slate-100 rounded-2xl p-5 bg-white shadow-sm space-y-3 [page-break-inside:avoid]">
+                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="bg-emerald-50 text-emerald-800 font-bold px-3 py-1 rounded-lg text-sm">
+                      {meal.time}
+                    </span>
+                    <h4 className="font-extrabold text-slate-800 text-base">{meal.name}</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {meal.tag && (
+                      <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                        {meal.tag}
+                      </span>
+                    )}
+                    <span className="text-xs font-bold text-slate-500">{meal.kcal} kcal</span>
+                  </div>
+                </div>
+                {meal.items.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">Nenhum item adicionado a esta refeição.</p>
+                ) : (
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-slate-700 text-sm font-medium pl-2 list-disc list-inside">
+                    {meal.items.map((item, idx) => (
+                      <li key={idx} className="marker:text-emerald-500">{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Notes and Guidelines */}
+          {notes && (
+            <div className="border border-slate-100 rounded-2xl p-6 bg-slate-50 space-y-2 [page-break-inside:avoid]">
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                Orientações Gerais e Observações
+              </h3>
+              <p className="text-slate-700 text-sm whitespace-pre-wrap font-medium">{notes}</p>
+            </div>
+          )}
+
+          {/* Signatures */}
+          <div className="pt-12 flex justify-between items-end border-t border-slate-200 text-xs text-slate-400">
+            <div>
+              <p>Documento gerado digitalmente pelo sistema CRM Nutrição.</p>
+              <p>© 2026 CRM Nutrição - Dr. Antônio Feitoza.</p>
+            </div>
+            <div className="text-right border-t border-dashed border-slate-400 pt-2 w-48">
+              <p className="font-bold text-slate-600">Assinatura do Profissional</p>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
