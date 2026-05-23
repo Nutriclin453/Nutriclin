@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Patient, PatientService } from '@/lib/patient-service';
 import { WorkoutService, Exercise, WorkoutPlan } from '@/lib/workout-service';
+import { useAuth } from '@/components/supabase-provider';
 
 const EXERCISE_DATABASE: Record<string, { name: string; image: string }[]> = {
   'Peito': [
@@ -130,7 +131,8 @@ const FREQUENCY_OPTIONS = {
 };
 
 export default function Treinos() {
-  const [activeTab, setActiveTab] = useState('Treino A');
+  const { user, loading: authLoading } = useAuth();
+  const [activeTab, setActiveTab ] = useState('Treino A');
   const [frequency, setFrequency] = useState('3 Dias (Divisão ABC - Push/Pull/Legs)');
   const [isEditing, setIsEditing] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -144,8 +146,10 @@ export default function Treinos() {
   const [workouts, setWorkouts] = useState<Exercise[]>([]);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    if (!authLoading && user) {
+      fetchPatients();
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (selectedPatientId) {

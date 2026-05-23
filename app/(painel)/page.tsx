@@ -25,6 +25,7 @@ import { motion } from 'motion/react';
 import { PatientService } from '@/lib/patient-service';
 import { EvaluationService } from '@/lib/evaluation-service';
 import { DietService } from '@/lib/diet-service';
+import { useAuth } from '@/components/supabase-provider';
 
 const data = [
   { name: 'Jan', value: 400 },
@@ -36,6 +37,7 @@ const data = [
 ];
 
 export default function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
   const [totalPatients, setTotalPatients] = useState<number | null>(null);
   const [totalEvaluations, setTotalEvaluations] = useState<number | null>(null);
   const [totalDiets, setTotalDiets] = useState<number | null>(null);
@@ -101,8 +103,10 @@ export default function Dashboard() {
         setStatsLoaded(true);
       }
     }
-    fetchStats();
-  }, []);
+    if (!authLoading && user) {
+      fetchStats();
+    }
+  }, [user, authLoading]);
 
   const getNextAppointmentDisplay = () => {
     if (!statsLoaded) return { value: '—', subtitle: '' };

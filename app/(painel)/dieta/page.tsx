@@ -25,6 +25,7 @@ import {
 import { motion } from "motion/react";
 import { Patient, PatientService } from "@/lib/patient-service";
 import { Diet, DietService, Meal, Macros } from "@/lib/diet-service";
+import { useAuth } from "@/components/supabase-provider";
 
 const PRESET_GOALS = [
   "Hipertrofia",
@@ -337,6 +338,7 @@ function analyzeFoodItem(item: string) {
 }
 
 export default function Dieta() {
+  const { user, loading: authLoading } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loadingPatients, setLoadingPatients] = useState(true);
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
@@ -366,8 +368,10 @@ export default function Dieta() {
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    if (!authLoading && user) {
+      fetchPatients();
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (selectedPatientId) {

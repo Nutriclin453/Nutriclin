@@ -1,5 +1,58 @@
 import { createClient } from '@supabase/supabase-js';
 
+if (typeof window !== 'undefined') {
+  const isStaleTokenError = (msg: string) => {
+    return (
+      msg.includes('Invalid Refresh Token') ||
+      msg.includes('Refresh Token Not Found') ||
+      msg.includes('refresh_token_not_found')
+    );
+  };
+
+  const handleGlobalStaleSession = (msg: string) => {
+    console.warn('Stale session detected globally, clearing local store/cookies:', msg);
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
+          localStorage.removeItem(key);
+        }
+      }
+    } catch (_) {}
+
+    try {
+      document.cookie.split(";").forEach((c) => {
+        const eqPos = c.indexOf("=");
+        const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+        if (name.startsWith('sb-') || name.includes('supabase')) {
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
+      });
+    } catch (_) {}
+  };
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const msg = reason?.message || String(reason || '');
+    if (isStaleTokenError(msg)) {
+      console.warn('Unhandled rejection for refresh token muted:', msg);
+      event.preventDefault();
+      event.stopPropagation();
+      handleGlobalStaleSession(msg);
+    }
+  });
+
+  window.addEventListener('error', (event) => {
+    const msg = event.message || '';
+    if (isStaleTokenError(msg)) {
+      console.warn('Unhandled error for refresh token muted:', msg);
+      event.preventDefault();
+      event.stopPropagation();
+      handleGlobalStaleSession(msg);
+    }
+  });
+}
+
 export const createBrowserSupabase = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';

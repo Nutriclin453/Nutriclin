@@ -17,10 +17,13 @@ import {
 import { 
   AreaChart, 
   Area, 
+  LineChart,
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
+  Legend,
   ResponsiveContainer,
   TooltipProps
 } from 'recharts';
@@ -318,78 +321,70 @@ export default function Avaliacoes() {
     handleLoadEvaluation(ev);
   };
 
+  const getEvaluationTime = (ev: any): number => {
+    if (!ev || !ev.createdAt) return 0;
+    if (typeof ev.createdAt.toDate === 'function') {
+      return ev.createdAt.toDate().getTime();
+    }
+    const t = new Date(ev.createdAt).getTime();
+    return isNaN(t) ? 0 : t;
+  };
+
   const tableEvaluations = React.useMemo(() => {
     if (!patientName) return [];
     return evaluations
       .filter(ev => ev.patientName === patientName)
-      .sort((a, b) => {
-        const dateA = new Date(a.createdAt?.toDate?.() || a.createdAt).getTime();
-        const dateB = new Date(b.createdAt?.toDate?.() || b.createdAt).getTime();
-        return dateB - dateA;
-      });
+      .sort((a, b) => getEvaluationTime(b) - getEvaluationTime(a));
   }, [evaluations, patientName]);
 
   // Derived data for chart
   const patientEvaluations = React.useMemo(() => {
     if (selectedComparisons.length === 2) {
-      return [...selectedComparisons].sort((a, b) => {
-        const dateA = new Date(a.createdAt?.toDate?.() || a.createdAt).getTime();
-        const dateB = new Date(b.createdAt?.toDate?.() || b.createdAt).getTime();
-        return dateA - dateB;
-      });
+      return [...selectedComparisons].sort((a, b) => getEvaluationTime(a) - getEvaluationTime(b));
     }
     
     return evaluations
       .filter(ev => ev.patientName === patientName && patientName !== '')
-      .sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0;
-        const dateB = b.createdAt?.toDate?.() ? b.createdAt.toDate().getTime() : 0;
-        return dateA - dateB;
-      });
+      .sort((a, b) => getEvaluationTime(a) - getEvaluationTime(b));
   }, [evaluations, patientName, selectedComparisons]);
 
   const chartData = patientEvaluations.map(ev => {
-    const dateLabel = ev.createdAt?.toDate?.() 
+    let d: Date | null = null;
+    const rawCreatedAt = ev.createdAt ?? (ev as any).created_at;
+    if (rawCreatedAt) {
+      if (typeof rawCreatedAt.toDate === 'function') {
+        d = rawCreatedAt.toDate();
+      } else {
+        const parsed = new Date(rawCreatedAt);
+        if (!isNaN(parsed.getTime())) {
+          d = parsed;
+        }
+      }
+    }
+    
+    const dateLabel = d 
       ? (() => {
-          const d = ev.createdAt.toDate();
           const day = d.getDate().toString().padStart(2, '0');
           const month = d.toLocaleDateString('pt-BR', { month: 'short' }).slice(0, 3);
-          const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+          const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1).replace('.', '');
           return `${day}/${formattedMonth}`;
         })()
-      : 'Nov';
-    return {
+      : 'ND';
+
+    const rawWeight = ev.weight ?? (ev as any).weight ?? (ev as any).peso;
+    const parsedWeight = rawWeight !== undefined && rawWeight !== null ? Number(rawWeight) : 0;
+
+    const rawBF = ev.bodyFat ?? (ev as any).body_fat ?? (ev as any).bf ?? (ev as any).gordura ?? (ev as any).percentualGordura;
+    const parsedBF = rawBF !== undefined && rawBF !== null ? Number(Number(rawBF).toFixed(1)) : 0;
+
+     return {
       date: dateLabel,
-      peso: ev.weight,
-      bf: ev.bodyFat !== undefined && ev.bodyFat !== null ? Number(Number(ev.bodyFat).toFixed(1)) : 0,
-      fullDate: ev.createdAt?.toDate?.() ? ev.createdAt.toDate().toLocaleDateString('pt-BR') : ''
+      data: dateLabel,
+      peso: parsedWeight,
+      bf: parsedBF,
+      fullDate: d ? d.toLocaleDateString('pt-BR') : ''
     };
   });
-
-  const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-surface-dim border border-outline-variant p-4 rounded-xl shadow-2xl backdrop-blur-md">
-          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-2 border-b border-outline-variant pb-1">
-            {label} | Extrato
-          </p>
-          <div className="space-y-1">
-            {payload.map((entry, index) => (
-              <div key={index} className="flex items-center justify-between gap-4">
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: entry.color }}>
-                  {entry.name}
-                </span>
-                <span className="text-sm font-black text-on-surface">
-                  {entry.value}{entry.name === 'Peso' ? 'kg' : '%'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const handleFoldChange = (field: keyof Skinfolds, value: string) => {
     setFolds(prev => ({
@@ -905,85 +900,101 @@ export default function Avaliacoes() {
                   </div>
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_10px_rgba(78,222,163,0.5)]" />
+                       <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                        <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Peso</span>
                     </div>
                     <div className="flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-full bg-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                       <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">% BF</span>
+                       <div className="w-1.5 h-3.5 rounded-full bg-[#3b82f6] shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                       <div className="flex flex-col leading-[0.95] -space-y-[1px]">
+                         <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">%</span>
+                         <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest">BF</span>
+                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex-1 w-full min-h-[300px]">
-                  {chartData.length < 2 ? (
-                    <div className="h-full flex flex-col items-center justify-center space-y-4 border-2 border-dashed border-outline-variant rounded-2xl bg-surface-dim/30">
+                  {!patientName ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 space-y-4 border-2 border-dashed border-outline-variant rounded-2xl bg-surface-dim/30 min-h-[300px]">
                       <TrendingUp size={40} className="text-on-surface-variant opacity-20" />
-                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] text-center max-w-[200px]">
-                        {patientName ? 'Registre mais avaliações para visualizar a curva de evolução.' : 'Selecione um paciente para ver os dados de evolução.'}
+                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-[0.15em] text-center max-w-[280px]">
+                        Selecione um paciente para ver os dados de evolução.
+                      </p>
+                    </div>
+                  ) : chartData.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 space-y-4 border-2 border-dashed border-outline-variant rounded-2xl bg-surface-dim/30 min-h-[300px]">
+                      <TrendingUp size={40} className="text-on-surface-variant opacity-20" />
+                      <p className="text-xs font-semibold text-on-surface-variant text-center max-w-[280px]">
+                        Gere a primeira avaliação para iniciar o gráfico de progresso.
                       </p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={chartData} margin={{ top: 10, right: -5, left: -25, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#4edea3" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#4edea3" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="colorBF" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff0a" />
-                        <XAxis 
-                          dataKey="date" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 900 }}
-                          dy={15}
-                        />
-                        <YAxis 
-                          yAxisId="left"
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fill: '#4edea3', fontSize: 10, fontWeight: 900 }} 
-                          domain={['auto', 'auto']}
-                        />
-                        <YAxis 
-                          yAxisId="right"
-                          orientation="right"
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{ fill: '#3b82f6', fontSize: 10, fontWeight: 900 }} 
-                          domain={[0, 30]}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Area 
-                          yAxisId="left"
-                          name="Peso"
-                          type="monotone" 
-                          dataKey="peso" 
-                          stroke="#4edea3" 
-                          strokeWidth={4}
-                          fillOpacity={1} 
-                          fill="url(#colorPeso)" 
-                          activeDot={{ r: 8, stroke: '#111827', strokeWidth: 2, fill: '#4edea3' }}
-                        />
-                        <Area 
-                          yAxisId="right"
-                          name="% BF"
-                          type="monotone" 
-                          dataKey="bf" 
-                          stroke="#3b82f6" 
-                          strokeWidth={4}
-                          fillOpacity={1} 
-                          fill="url(#colorBF)" 
-                          activeDot={{ r: 8, stroke: '#111827', strokeWidth: 2, fill: '#3b82f6' }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                    <div className="w-full h-[300px] mt-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
+                          <defs>
+                            <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorBF" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2D3748" opacity={0.3} />
+                          <XAxis dataKey="data" stroke="#718096" style={{ fontSize: '12px' }} tickLine={false} />
+                          <YAxis 
+                            yAxisId="left" 
+                            stroke="#10B981" 
+                            domain={['dataMin - 3', 'dataMax + 3']} 
+                            tickLine={false} 
+                            style={{ fontSize: '12px' }} 
+                          />
+                          <YAxis 
+                            yAxisId="right" 
+                            orientation="right" 
+                            stroke="#3B82F6" 
+                            domain={['dataMin - 2', 'dataMax + 2']} 
+                            tickLine={false} 
+                            style={{ fontSize: '12px' }} 
+                          />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#1A202C', borderColor: '#2D3748', color: '#FFF', borderRadius: '8px' }} 
+                            formatter={(value: any, name: string) => {
+                              if (name === 'PESO') return [`${value} kg`, name];
+                              if (name === '% BF') return [`${value}%`, name];
+                              return [value, name];
+                            }}
+                          />
+                          <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '12px' }} />
+                          <Area 
+                            yAxisId="left" 
+                            type="monotone" 
+                            dataKey="peso" 
+                            stroke="#10B981" 
+                            strokeWidth={3} 
+                            fillOpacity={1} 
+                            fill="url(#colorPeso)" 
+                            name="PESO" 
+                            dot={false} 
+                            activeDot={{ r: 6 }} 
+                          />
+                          <Area 
+                            yAxisId="right" 
+                            type="monotone" 
+                            dataKey="bf" 
+                            stroke="#3B82F6" 
+                            strokeWidth={3} 
+                            fillOpacity={1} 
+                            fill="url(#colorBF)" 
+                            name="% BF" 
+                            dot={false} 
+                            activeDot={{ r: 6 }} 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   )}
                 </div>
               </div>
