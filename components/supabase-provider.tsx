@@ -31,19 +31,25 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isMockForced = typeof window !== 'undefined' && localStorage.getItem('supabase_force_mock') === 'true';
-    const hasEnv = !isMockForced && 
-                   process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
-                   process.env.NEXT_PUBLIC_SUPABASE_URL !== '' && 
-                   !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co');
-    
     let isMounted = true;
+    let safetyTimeout: NodeJS.Timeout;
 
-    // Safety fallback: if auth connection hangs (e.g., cold start, paused DB, or CORS issue), 
-    // bypass the loading screen after 4 seconds to keep the application operational.
-    const safetyTimeout = setTimeout(() => {
+    // Safety fallback: ensure loading is resolved no matter what after 3 seconds
+    safetyTimeout = setTimeout(() => {
       if (isMounted) {
-        console.warn('Authentication loading timeout reached. Resolving with fallback.');
+        console.warn('Auth loading safety timeout hit');
+        setLoading(false);
+      }
+    }, 3000);
+
+    async function initAuth() {
+      const isMockForced = typeof window !== 'undefined' && localStorage.getItem('supabase_force_mock') === 'true';
+      const hasEnv = !isMockForced && 
+                     process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
+                     process.env.NEXT_PUBLIC_SUPABASE_URL !== '' && 
+                     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co');
+
+      if (!hasEnv) {
         if (typeof window !== 'undefined') {
           try {
             const storedUserJson = localStorage.getItem('mock_user_session');
@@ -53,145 +59,50 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
               setSession(parsed || null);
             }
           } catch (e) {
-            console.error('Error loading mock user session during timeout fallback:', e);
+            console.error('Error loading mock session:', e);
           }
         }
-        setLoading(false);
-      }
-    }, 4000);
-
-    if (!hasEnv) {
-      clearTimeout(safetyTimeout);
-      if (typeof window !== 'undefined') {
-        try {
-          const storedUserJson = localStorage.getItem('mock_user_session');
-          if (storedUserJson) {
-            const parsed = JSON.parse(storedUserJson);
-            setUser(parsed.user || null);
-            setSession(parsed || null);
-          } else {
-            setUser(null);
-            setSession(null);
-          }
-        } catch (e) {
-          console.error('Error loading mock user session:', e);
-        }
-      }
-      setLoading(false);
-      return;
-    }
-
-    supabase.auth.getSession().then(({ data, error }) => {
-      clearTimeout(safetyTimeout);
-      if (!isMounted) return;
-
-      if (error) {
-        console.warn('Session retrieval encountered error:', error);
-        const errMsg = error.message || '';
-        if (
-          errMsg.includes('Invalid Refresh Token') || 
-          errMsg.includes('Refresh Token Not Found') || 
-          errMsg.includes('refresh_token_not_found') || 
-          error.status === 400 || 
-          error.status === 401
-        ) {
-          if (typeof window !== 'undefined') {
-            for (let i = localStorage.length - 1; i >= 0; i--) {
-              const key = localStorage.key(i);
-              if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
-                localStorage.removeItem(key);
-              }
-            }
-          }
-          setSession(null);
-          setUser(null);
+        if (isMounted) {
           setLoading(false);
-          return;
+          clearTimeout(safetyTimeout);
         }
-      }
-      
-      const session = data?.session || null;
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch((err) => {
-      clearTimeout(safetyTimeout);
-      if (!isMounted) return;
-
-      console.error('Error in getSession, setting forceMock:', err);
-      const msg = err.message || String(err);
-      if (msg.includes('Invalid Refresh Token') || msg.includes('Refresh Token Not Found') || msg.includes('refresh_token_not_found')) {
-        if (typeof window !== 'undefined') {
-          for (let i = localStorage.length - 1; i >= 0; i--) {
-            const key = localStorage.key(i);
-            if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
-              localStorage.removeItem(key);
-            }
-          }
-        }
-        setSession(null);
-        setUser(null);
-        setLoading(false);
         return;
       }
-      if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
-        setForceMock(true);
-        if (typeof window !== 'undefined') {
-          try {
-            const storedUserJson = localStorage.getItem('mock_user_session');
-            if (storedUserJson) {
-              const parsed = JSON.parse(storedUserJson);
-              setUser(parsed.user || null);
-              setSession(parsed || null);
-            }
-          } catch (e) {
-            console.error('Error loading mock user session in getSession fallback:', e);
+
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (isMounted) {
+          if (error) {
+            console.warn('Session error:', error);
           }
+          const session = data?.session || null;
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (isMounted) {
+          setLoading(false);
+          clearTimeout(safetyTimeout);
         }
       }
-      setLoading(false);
-    });
+    }
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      clearTimeout(safetyTimeout);
       if (!isMounted) return;
-
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
-      if (session?.user) {
-        // Run as background task so it never blocks session loading state updates
-        (async () => {
-          try {
-            const { data: existing } = await supabase
-              .from('leads')
-              .select('*')
-              .eq('name', '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__')
-              .limit(1);
-
-            if (!existing || existing.length === 0) {
-              await supabase.from('leads').insert([{
-                name: '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__',
-                email: session.user.id,
-                phone: '0000000000',
-                goal: 'SYSTEM'
-              }]);
-            } else if (existing[0].email !== session.user.id) {
-              await supabase.from('leads')
-                .update({ email: session.user.id })
-                .eq('name', '__NUTRITIONIST_SYSTEM_METADATA_DO_NOT_DELETE__');
-            }
-          } catch (e) {
-            console.error('Failed to register/update nutritionist metadata in leads:', e);
-          }
-        })();
-      }
+      if (safetyTimeout) clearTimeout(safetyTimeout);
     });
 
     return () => {
       isMounted = false;
-      clearTimeout(safetyTimeout);
+      if (safetyTimeout) clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);

@@ -13,7 +13,8 @@ import {
   LayoutDashboard,
   LogOut,
   Info,
-  X
+  X,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/components/supabase-provider';
 import { useSidebar } from '@/components/sidebar-context';
@@ -31,6 +32,7 @@ export function Sidebar() {
     { icon: Calendar, label: 'Avaliações', href: '/avaliacoes' },
     { icon: Apple, label: 'Dieta', href: '/dieta' },
     { icon: Dumbbell, label: 'Treinos', href: '/treinos' },
+    { icon: Activity, label: 'Exame', href: '/exames' },
     { icon: Info, label: 'Sobre', href: '/sobre' },
   ];
 
