@@ -25,6 +25,7 @@ import { motion } from 'motion/react';
 import { PatientService } from '@/lib/patient-service';
 import { EvaluationService } from '@/lib/evaluation-service';
 import { DietService } from '@/lib/diet-service';
+import { LeadService } from '@/lib/lead-service';
 import { useAuth } from '@/components/supabase-provider';
 import { setForceMock } from '@/lib/mock-db';
 
@@ -48,55 +49,48 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchStats(retryCount = 0) {
       try {
-        const [patientsData, evaluationsData, dietsData] = await Promise.all([
+        const [patientsData, evaluationsData, dietsData, leadsData] = await Promise.all([
           PatientService.getAll(),
           EvaluationService.getAll(),
-          DietService.getAll()
+          DietService.getAll(),
+          LeadService.getAll()
         ]);
         setTotalPatients(patientsData?.length || 0);
         setTotalEvaluations(evaluationsData?.length || 0);
         setTotalDiets(dietsData?.length || 0);
 
-        const now = new Date();
-        now.setHours(0, 0, 0, 0); // Start of today for comparison
+        // Filter the leads (triagem page participants) who do not have any evaluations.
+        // A completed assessment (evaluation) means they are already attended.
+        const evaluatedNames = new Set(
+          (evaluationsData || []).map(e => (e.patientName || '').toLowerCase().trim())
+        );
 
-        let upcoming: { patientName: string; date: Date }[] = [];
+        const pendingLeads = (leadsData || []).filter(lead => {
+          const leadName = (lead.name || '').toLowerCase().trim();
+          if (leadName === '__nutritionist_system_metadata_do_not_delete__') return false;
+          // Filter out anyone who has been registered/evaluated 
+          return !evaluatedNames.has(leadName);
+        });
 
-        if (patientsData) {
-          patientsData.forEach(p => {
-             if (p.lastVisit) {
-                let date;
-                if (typeof p.lastVisit.toDate === 'function') {
-                   date = p.lastVisit.toDate();
-                } else {
-                   date = new Date(p.lastVisit as string);
-                }
-                if (date >= now) {
-                   upcoming.push({ patientName: p.name, date });
-                }
-             }
-          });
-        }
-
-        if (evaluationsData) {
-          evaluationsData.forEach(e => {
-             if (e.createdAt) {
-                let date;
-                if (typeof e.createdAt.toDate === 'function') {
-                   date = e.createdAt.toDate();
-                } else {
-                   date = new Date(e.createdAt as string);
-                }
-                if (date >= now) {
-                   upcoming.push({ patientName: e.patientName, date });
-                }
-             }
-          });
-        }
+        const upcoming = pendingLeads.map(lead => {
+          let date;
+          if (lead.created_at) {
+             date = new Date(lead.created_at);
+          } else {
+             date = new Date();
+          }
+          return {
+             patientName: lead.name,
+             date
+          };
+        });
 
         if (upcoming.length > 0) {
+           // Sort by creation date so the next pending lead starts from oldest pending to newest
            upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
            setNextAppointment(upcoming[0]);
+        } else {
+           setNextAppointment(null);
         }
       } catch (err: any) {
         console.error("Failed to fetch dashboard stats", err);

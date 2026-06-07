@@ -39,6 +39,35 @@ const saveMockLead = (lead: Lead): Lead => {
 };
 
 export const LeadService = {
+  async getAll(): Promise<Lead[]> {
+    if (isMockEnabled()) {
+      return getMockLeads();
+    }
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data || []).map((lead: any) => ({
+        id: lead.id || lead.ID,
+        name: lead.name || lead.nome || '',
+        email: lead.email || '',
+        phone: lead.phone || lead.whatsapp || lead.telefone || '',
+        goal: lead.goal || lead.objetivo || '',
+        service_type: lead.service_type || lead.tipo_atendimento || lead.atendimento || '',
+        age: lead.age !== undefined && lead.age !== null ? Number(lead.age) : (lead.idade !== undefined && lead.idade !== null ? Number(lead.idade) : undefined),
+        weight: lead.weight !== undefined && lead.weight !== null ? Number(lead.weight) : (lead.peso !== undefined && lead.peso !== null ? Number(lead.peso) : undefined),
+        height: lead.height !== undefined && lead.height !== null ? Number(lead.height) : (lead.altura !== undefined && lead.altura !== null ? Number(lead.altura) : undefined),
+        gender: lead.gender || lead.genero || '',
+        created_at: lead.created_at || lead.createdAt
+      }));
+    } catch (err) {
+      console.warn('Failed to load leads from database, falling back to mock leads', err);
+      return getMockLeads();
+    }
+  },
+
   async create(data: Omit<Lead, 'id' | 'created_at'>) {
     if (isMockEnabled()) {
       return saveMockLead(data);
