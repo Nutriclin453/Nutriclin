@@ -25,7 +25,7 @@ export default function Sobre() {
         <section className="relative rounded-3xl overflow-hidden bg-surface-container border border-outline-variant flex flex-col md:flex-row shadow-xl">
           <div className="md:w-1/3 h-[500px] relative">
             <img src={PROFILE_PIC} className="w-full h-full object-cover" alt="Dr. Antonio Feitoza" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-surface-container md:bg-gradient-to-r md:from-transparent md:to-surface-container bg-gradient-to-t" />
+            <div className="absolute inset-0 bg-gradient-to-t from-surface-container to-transparent md:bg-gradient-to-r md:from-transparent md:to-surface-container" />
           </div>
           <div className="md:w-2/3 p-8 md:p-12 flex flex-col justify-center space-y-6">
             <div>
@@ -62,16 +62,15 @@ export default function Sobre() {
               </div>
               <div className="space-y-8 border-l border-outline-variant ml-6 pl-8 relative">
                 {[
-                  { role: 'Gerente Regional', company: 'Sapore', period: 'Atual', desc: 'Liderança estratégica em operações de grande porte.' },
-                  { role: 'Gerente Master / Nutricionista Clínico', company: 'Hospital', period: 'Anterior', desc: 'Gestão hospitalar e atendimento clínico especializado.' },
-                  { role: 'Consultor Especialista', company: 'Petrobras', period: 'Anterior', desc: 'Atuação com expertise em Tecnologia de Segurança dos Alimentos (Qualidade).' },
-                  { role: 'Supervisor de Laboratórios', company: 'Universidade', period: 'Anterior', desc: 'Supervisão acadêmica e técnica nos laboratórios de Embriologia e Histologia.' },
+                  { role: 'Gerente Regional', company: 'Sapore', desc: 'Liderança estratégica em operações de grande porte.' },
+                  { role: 'Gerente Master / Nutricionista Clínico', company: 'Hospital', desc: 'Gestão hospitalar e atendimento clínico especializado.' },
+                  { role: 'Consultor Especialista', company: 'Petrobras', desc: 'Atuação com expertise em Tecnologia de Segurança dos Alimentos (Qualidade).' },
+                  { role: 'Supervisor de Laboratórios', company: 'Universidade', desc: 'Supervisão acadêmica e técnica nos laboratórios de Embriologia e Histologia.' },
                 ].map((exp, i) => (
                   <div key={i} className="relative">
                     <div className="absolute -left-[37px] top-1.5 w-4 h-4 rounded-full bg-primary ring-4 ring-surface" />
                     <h3 className="font-bold text-on-surface flex items-center justify-between flex-wrap gap-2">
                        <span>{exp.role} @ {exp.company}</span>
-                      <span className="text-[10px] uppercase font-black text-primary/60">{exp.period}</span>
                     </h3>
                     <p className="text-sm text-on-surface-variant mt-2 font-medium leading-relaxed">{exp.desc}</p>
                   </div>

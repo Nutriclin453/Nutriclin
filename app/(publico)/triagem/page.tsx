@@ -198,9 +198,30 @@ export default function TriagemPage() {
             ALTA PERFORMANCE <br />
             & ESTILO DE VIDA
           </h2>
-          <p className="text-sm font-medium text-slate-400 leading-relaxed max-w-sm">
-            Agende sua triagem com o Dr. Antonio Feitoza e conquiste o corpo e a saúde que você sempre desejou com acompanhamento clínico individualizado.
-          </p>
+          <div className="pt-2 space-y-3">
+            <p className="text-[10px] uppercase font-black text-primary tracking-widest flex items-center gap-1.5">
+              🎓 Formação Acadêmica
+            </p>
+            <div className="grid grid-cols-1 gap-2.5 max-w-sm">
+              {[
+                "Graduação em Nutrição",
+                "Pós-graduação em Tecnologia de Segurança dos Alimentos",
+                "Pós-graduação em Nutrição Clínica Funcional",
+                "Pós-graduação em Nutrição Esportiva",
+                "Pós-graduação em Nutrição Clínica",
+                "CREF Provisionado em Educação Física"
+              ].map((formacao, idx) => (
+                <div key={idx} className="flex items-start gap-2.5">
+                  <span className="text-emerald-400 flex-shrink-0 mt-0.5">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                  </span>
+                  <span className="text-xs font-semibold text-slate-300 leading-snug">
+                    {formacao}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
