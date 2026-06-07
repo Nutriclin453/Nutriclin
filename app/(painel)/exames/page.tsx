@@ -35,6 +35,12 @@ export default function ExamesPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  const handleDeleteExam = (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este registro de exame?')) {
+      setExams(exams.filter(e => e.id !== id));
+    }
+  };
+
   const handleSaveExam = () => {
     if (!newExam.type?.trim()) return;
 
@@ -197,9 +203,9 @@ export default function ExamesPage() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="space-y-8 print:hidden"
+        className="space-y-8"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
           <div>
             <h1 className="text-3xl font-bold text-on-surface">Acompanhamento de Exames</h1>
             <p className="text-on-surface-variant text-sm mt-1">Registre e acompanhe os exames laboratoriais do paciente.</p>
@@ -209,6 +215,7 @@ export default function ExamesPage() {
               onClick={() => window.print()}
               disabled={!selectedPatientId}
               type="button"
+              id="btn-imprimir"
               className="bg-surface-container-high border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-bold hover:bg-surface-dim active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Printer size={20} className="text-on-surface-variant" />
@@ -225,7 +232,7 @@ export default function ExamesPage() {
           </div>
         </div>
 
-        <div className="bg-surface-container p-4 md:p-6 rounded-xl border border-outline-variant">
+        <div className="bg-surface-container p-4 md:p-6 rounded-xl border border-outline-variant print:hidden">
            <div className="space-y-2 max-w-sm">
             <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Selecione o Paciente</label>
             <select 
@@ -243,21 +250,27 @@ export default function ExamesPage() {
         </div>
 
         {selectedPatientId ? (
-          <div className="bg-surface-container border border-outline-variant rounded-3xl overflow-hidden shadow-xl">
-             <div className="p-6 md:p-8 border-b border-outline-variant bg-surface-dim/20">
-               <h3 className="text-xl font-black text-on-surface tracking-tight uppercase">Histórico de Exames</h3>
+          <div className="bg-surface-container border border-outline-variant rounded-3xl overflow-hidden shadow-xl print:shadow-none print:border-none print:bg-white print:p-0">
+             <div className="p-6 md:p-8 border-b border-outline-variant bg-surface-dim/20 print:bg-transparent print:border-b-2 print:border-black print:px-0">
+               <h3 className="text-xl font-black text-on-surface tracking-tight uppercase print:text-2xl print:text-black">Histórico de Exames</h3>
+               {selectedPatientId && (
+                 <div className="hidden print:block mt-4 text-black">
+                   <p className="font-bold">Paciente: <span className="font-normal">{patients.find(p => p.id === selectedPatientId)?.name}</span></p>
+                   <p className="font-bold text-xs">Relatório gerado em {new Date().toLocaleDateString('pt-BR')}</p>
+                 </div>
+               )}
              </div>
              <div className="p-0">
-               <table className="w-full text-left">
-                  <thead className="bg-surface-dim/80 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant">
+               <table className="w-full text-left print:text-black">
+                  <thead className="bg-surface-dim/80 backdrop-blur-sm text-[10px] font-black uppercase tracking-widest text-on-surface-variant border-b border-outline-variant print:bg-white print:text-black print:border-black">
                     <tr>
-                      <th className="px-8 py-4">Data</th>
-                      <th className="px-8 py-4">Tipo de Exame</th>
-                      <th className="px-8 py-4">Anotações</th>
-                      <th className="px-8 py-4 text-right">Ações</th>
+                      <th className="px-8 py-4 print:px-0">Data</th>
+                      <th className="px-8 py-4 print:px-0">Tipo de Exame</th>
+                      <th className="px-8 py-4 print:px-0">Anotações</th>
+                      <th className="px-8 py-4 text-right print:hidden">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant">
+                  <tbody className="divide-y divide-outline-variant print:divide-black/20">
                     {exams.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-8 py-20 text-center text-xs font-bold text-on-surface-variant uppercase tracking-widest">
@@ -266,15 +279,27 @@ export default function ExamesPage() {
                       </tr>
                     ) : (
                       exams.map((exam) => (
-                        <tr key={exam.id} className="hover:bg-primary/5 transition-all">
-                          <td className="px-8 py-5 text-sm font-bold text-on-surface">{new Date(exam.date).toLocaleDateString('pt-BR')}</td>
-                          <td className="px-8 py-5 text-sm font-black text-on-surface">{exam.type}</td>
-                          <td className="px-8 py-5 text-sm text-on-surface-variant">{exam.notes}</td>
-                          <td className="px-8 py-5 text-right flex items-center justify-end gap-2">
-                            <button className="p-2 text-on-surface-variant hover:text-primary bg-surface-container-high border border-outline-variant rounded-lg transition-all hover:scale-105">
+                        <tr key={exam.id} className="hover:bg-primary/5 transition-all print:hover:bg-transparent">
+                          <td className="px-8 py-5 text-sm font-bold text-on-surface print:text-black print:px-0">{new Date(exam.date).toLocaleDateString('pt-BR')}</td>
+                          <td className="px-8 py-5 text-sm font-black text-on-surface print:text-black print:px-0">{exam.type}</td>
+                          <td className="px-8 py-5 text-sm text-on-surface-variant print:text-black print:px-0 print:text-xs leading-relaxed whitespace-pre-line">{exam.notes}</td>
+                          <td className="px-8 py-5 text-right flex items-center justify-end gap-2 print:hidden">
+                            <button 
+                              onClick={() => {
+                                setNewExam({
+                                  ...exam,
+                                  mode: 'manual'
+                                });
+                                setIsModalOpen(true);
+                              }}
+                              className="p-2 text-on-surface-variant hover:text-primary bg-surface-container-high border border-outline-variant rounded-lg transition-all hover:scale-105"
+                            >
                               <Search size={16} />
                             </button>
-                            <button className="p-2 text-on-surface-variant hover:text-error bg-surface-container-high border border-outline-variant rounded-lg transition-all hover:scale-105">
+                            <button 
+                              onClick={() => handleDeleteExam(exam.id)}
+                              className="p-2 text-on-surface-variant hover:text-error bg-surface-container-high border border-outline-variant rounded-lg transition-all hover:scale-105"
+                            >
                               <Trash2 size={16} />
                             </button>
                           </td>
@@ -332,7 +357,7 @@ export default function ExamesPage() {
                 {newExam.mode === 'ai' ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs text-emerald-300 font-medium leading-relaxed">
-                      Importe o arquivo do exame (PDF ou Imagem) ou cole o texto do laudo. A IA irá identificar o tipo de exame, as datas e transcrever os resultados.
+                      💡 <strong>Dica:</strong> Importe o arquivo do exame (PDF ou Imagem) ou cole o texto do laudo. A IA irá identificar o tipo de exame, as datas e transcrever os resultados automaticamente.
                     </div>
 
                     {aiError && (
@@ -412,7 +437,11 @@ export default function ExamesPage() {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary font-medium leading-relaxed">
+                      <strong>Registro Direto:</strong> Digite manualmente as informações do exame caso não queira usar a análise automática.
+                    </div>
+                    
                     <div>
                       <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider px-1">Data do Exame</label>
                       <input
@@ -441,10 +470,10 @@ export default function ExamesPage() {
                         value={newExam.notes}
                         onChange={(e) => setNewExam({ ...newExam, notes: e.target.value })}
                         rows={4}
-                        className="w-full mt-1 bg-surface-container-high border border-outline-variant rounded-xl p-3 text-on-surface focus:border-primary transition-all outline-none resize-none"
+                        className="w-full mt-1 bg-surface-container-high border border-outline-variant rounded-xl p-3 text-on-surface focus:border-primary transition-all outline-none resize-none px-4"
                       />
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
 
