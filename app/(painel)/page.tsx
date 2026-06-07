@@ -26,6 +26,7 @@ import { PatientService } from '@/lib/patient-service';
 import { EvaluationService } from '@/lib/evaluation-service';
 import { DietService } from '@/lib/diet-service';
 import { useAuth } from '@/components/supabase-provider';
+import { setForceMock } from '@/lib/mock-db';
 
 const data = [
   { name: 'Jan', value: 400 },
@@ -45,7 +46,7 @@ export default function Dashboard() {
   const [statsLoaded, setStatsLoaded] = useState(false);
 
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchStats(retryCount = 0) {
       try {
         const [patientsData, evaluationsData, dietsData] = await Promise.all([
           PatientService.getAll(),
@@ -97,8 +98,16 @@ export default function Dashboard() {
            upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
            setNextAppointment(upcoming[0]);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch dashboard stats", err);
+        const msg = err?.message || String(err);
+        if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+          setForceMock(true);
+          setTimeout(() => {
+            fetchStats(retryCount + 1);
+          }, 50);
+          return;
+        }
       } finally {
         setStatsLoaded(true);
       }

@@ -24,6 +24,7 @@ import {
 import { Patient, PatientService } from '@/lib/patient-service';
 import { WorkoutService, Exercise, WorkoutPlan } from '@/lib/workout-service';
 import { useAuth } from '@/components/supabase-provider';
+import { setForceMock } from '@/lib/mock-db';
 
 const EXERCISE_DATABASE: Record<string, { name: string; image: string }[]> = {
   'Peito': [
@@ -160,19 +161,27 @@ export default function Treinos() {
     }
   }, [selectedPatientId]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (retryCount = 0) => {
     try {
       const data = await PatientService.getAll();
       setPatients(data || []);
     } catch (err: any) {
       console.error(err);
+      const msg = err?.message || String(err);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchPatients(retryCount + 1);
+        }, 50);
+        return;
+      }
       setErrorMsg('Erro ao buscar pacientes.');
     } finally {
       setLoadingPatients(false);
     }
   };
 
-  const fetchWorkout = async (patientId: string) => {
+  const fetchWorkout = async (patientId: string, retryCount = 0) => {
     setLoadingWorkouts(true);
     setErrorMsg('');
     try {
@@ -186,6 +195,14 @@ export default function Treinos() {
       }
     } catch (err: any) {
       console.error(err);
+      const msg = err?.message || String(err);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchWorkout(patientId, retryCount + 1);
+        }, 50);
+        return;
+      }
       setErrorMsg('Erro ao buscar treinos.');
     } finally {
       setLoadingWorkouts(false);

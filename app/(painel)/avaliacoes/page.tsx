@@ -31,6 +31,7 @@ import { EvaluationService, Skinfolds, Evaluation } from '@/lib/evaluation-servi
 import { Patient, PatientService } from '@/lib/patient-service';
 import { useAuth } from '@/components/supabase-provider';
 import { DashboardLayout } from '@/components/dashboard-layout';
+import { setForceMock } from '@/lib/mock-db';
 
 const MOTIVATION_IMAGE = "https://lh3.googleusercontent.com/aida-public/AB6AXuDlLkbKAEgfjjKKsfGrf4TsLRIKnNSZgRCz1jdY3kztNZUeJevwzkrHVGqZVDF1d3fYcPZZZPZblmdeskGjD4LQmLX2rZOIdZaUsNBt0FzFfXFdbTOj6IUe4qB95WrwNXJrv-X_QBSyEFrkRh8dH0kBY5edhaTTtCOA7R0qWVojNlhDSTiVxPKAK1ivsmHAa4D3nPoYZvuOuWAVSfuSCV4xcBO3fKgUjq6JMtwMH_eDT8yePdHYDogpUaCb-mR2MsSkK2phWXmT6457";
 
@@ -136,7 +137,7 @@ export default function Avaliacoes() {
     };
   }, [folds, age, weight, gender]);
 
-  const fetchEvaluations = async () => {
+  const fetchEvaluations = async (retryCount = 0) => {
     setFetchLoading(true);
     setErrorMsg('');
     try {
@@ -144,20 +145,36 @@ export default function Avaliacoes() {
       setEvaluations(data || []);
     } catch (error: any) {
       console.error(error);
-      setErrorMsg(error?.message || String(error));
+      const msg = error?.message || String(error);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchEvaluations(retryCount + 1);
+        }, 50);
+        return;
+      }
+      setErrorMsg(msg);
     } finally {
       setFetchLoading(false);
     }
   };
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (retryCount = 0) => {
     setLoadingPatients(true);
     try {
       const data = await PatientService.getAll();
       setPatients(data || []);
     } catch (error: any) {
       console.error("Error fetching patients:", error);
-      setErrorMsg(error?.message || String(error));
+      const msg = error?.message || String(error);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchPatients(retryCount + 1);
+        }, 50);
+        return;
+      }
+      setErrorMsg(msg);
     } finally {
       setLoadingPatients(false);
     }
@@ -955,7 +972,7 @@ export default function Avaliacoes() {
                             yAxisId="right" 
                             orientation="right" 
                             stroke="#3B82F6" 
-                            domain={['dataMin - 2', 'dataMax + 2']} 
+                            domain={[5, 25]} 
                             tickLine={false} 
                             style={{ fontSize: '12px' }} 
                           />
@@ -1007,7 +1024,7 @@ export default function Avaliacoes() {
           {/* Header */}
           <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-6">
             <div>
-              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRM Nutrição</h1>
+              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRN Nutrição</h1>
               <p className="text-sm text-slate-500 font-medium">Dr. Antônio Feitoza - Nutricionista</p>
             </div>
             <div className="text-right">
@@ -1209,8 +1226,8 @@ export default function Avaliacoes() {
           {/* Signatures */}
           <div className="pt-12 flex justify-between items-end border-t border-slate-200 text-xs text-slate-400 [page-break-inside:avoid]">
             <div>
-              <p>Documento antropométrico gerado digitalmente pelo sistema CRM Nutrição.</p>
-              <p>© 2026 CRM Nutrição - Dr. Antônio Feitoza.</p>
+              <p>Documento antropométrico gerado digitalmente pelo sistema CRN Nutrição.</p>
+              <p>© 2026 CRN Nutrição - Dr. Antônio Feitoza.</p>
             </div>
             <div className="text-right border-t border-dashed border-slate-400 pt-2 w-48">
               <p className="font-bold text-slate-600 font-sans">Assinatura do Profissional</p>

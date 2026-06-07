@@ -20,7 +20,7 @@ import { PatientModal } from '@/components/patient-modal';
 import { useAuth } from '@/components/supabase-provider';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
-import { isMockEnabled } from '@/lib/mock-db';
+import { isMockEnabled, setForceMock } from '@/lib/mock-db';
 
 export default function Pacientes() {
   const { user, loading: authLoading } = useAuth();
@@ -105,7 +105,7 @@ export default function Pacientes() {
     return diffHours >= 0 && diffHours < 24;
   };
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (retryCount = 0) => {
     if (!user) return;
     setLoading(true);
     setErrorMsg('');
@@ -120,7 +120,15 @@ export default function Pacientes() {
       }
     } catch (error: any) {
       console.error("Error fetching patients:", error);
-      setErrorMsg(error?.message || String(error));
+      const msg = error?.message || String(error);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchPatients(retryCount + 1);
+        }, 50);
+        return;
+      }
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }

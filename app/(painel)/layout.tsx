@@ -10,7 +10,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Antonio Feitoza CRM - Nutricionista Esportivo",
+  title: "Antonio Feitoza CRN - Nutricionista Esportivo",
   description: "Sistema de gestão para nutricionistas esportivos",
 };
 

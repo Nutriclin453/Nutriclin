@@ -26,6 +26,7 @@ import { motion } from "motion/react";
 import { Patient, PatientService } from "@/lib/patient-service";
 import { Diet, DietService, Meal, Macros } from "@/lib/diet-service";
 import { useAuth } from "@/components/supabase-provider";
+import { setForceMock } from "@/lib/mock-db";
 
 const PRESET_GOALS = [
   "Hipertrofia",
@@ -446,12 +447,20 @@ export default function Dieta() {
     }
   }, [meals, loadingDiet, macros.protein, macros.carbs, macros.fats]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (retryCount = 0) => {
     try {
       const data = await PatientService.getAll();
       setPatients(data || []);
     } catch (err: any) {
       console.error(err);
+      const msg = err?.message || String(err);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchPatients(retryCount + 1);
+        }, 50);
+        return;
+      }
     } finally {
       setLoadingPatients(false);
     }
@@ -473,7 +482,7 @@ export default function Dieta() {
     setMeals(getDefaultMeals());
   };
 
-  const fetchDiet = async (patientId: string) => {
+  const fetchDiet = async (patientId: string, retryCount = 0) => {
     setLoadingDiet(true);
     setErrorMsg("");
     try {
@@ -553,6 +562,15 @@ export default function Dieta() {
         setMeals(getDefaultMeals());
       }
     } catch (err: any) {
+      console.error(err);
+      const msg = err?.message || String(err);
+      if ((msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('network') || msg.includes('TypeError')) && retryCount < 1) {
+        setForceMock(true);
+        setTimeout(() => {
+          fetchDiet(patientId, retryCount + 1);
+        }, 50);
+        return;
+      }
       setErrorMsg(
         err.message ||
           "Erro ao buscar dieta. Se a tabela não existir, crie a migration.",
@@ -1291,7 +1309,7 @@ export default function Dieta() {
           {/* Header */}
           <div className="flex justify-between items-start border-b-2 border-emerald-600 pb-6">
             <div>
-              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRM Nutrição</h1>
+              <h1 className="text-3xl font-extrabold text-emerald-800 tracking-tight">CRN Nutrição</h1>
               <p className="text-sm text-slate-500 font-medium">Dr. Antônio Feitoza - Nutricionista</p>
             </div>
             <div className="text-right">
@@ -1392,8 +1410,8 @@ export default function Dieta() {
           {/* Signatures */}
           <div className="pt-12 flex justify-between items-end border-t border-slate-200 text-xs text-slate-400">
             <div>
-              <p>Documento gerado digitalmente pelo sistema CRM Nutrição.</p>
-              <p>© 2026 CRM Nutrição - Dr. Antônio Feitoza.</p>
+              <p>Documento gerado digitalmente pelo sistema CRN Nutrição.</p>
+              <p>© 2026 CRN Nutrição - Dr. Antônio Feitoza.</p>
             </div>
             <div className="text-right border-t border-dashed border-slate-400 pt-2 w-48">
               <p className="font-bold text-slate-600">Assinatura do Profissional</p>

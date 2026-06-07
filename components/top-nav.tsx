@@ -394,7 +394,7 @@ export function TopNav() {
               Nutricionista Esportivo
             </span>
             <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 uppercase">
-              CRN 16029
+              CRN 14029
             </span>
           </div>
           <div className="relative">

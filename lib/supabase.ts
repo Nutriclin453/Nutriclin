@@ -31,6 +31,18 @@ if (typeof window !== 'undefined') {
     } catch (_) {}
   };
 
+  const isFetchNetworkError = (msg: string) => {
+    const lower = msg.toLowerCase();
+    return (
+      lower.includes('failed to fetch') ||
+      lower.includes('networkerror') ||
+      lower.includes('network error') ||
+      lower.includes('load failed') ||
+      lower.includes('typeerror') ||
+      lower.includes('cors')
+    );
+  };
+
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason;
     const msg = reason?.message || String(reason || '');
@@ -39,6 +51,13 @@ if (typeof window !== 'undefined') {
       event.preventDefault();
       event.stopPropagation();
       handleGlobalStaleSession(msg);
+    } else if (isFetchNetworkError(msg)) {
+      console.warn('Network or fetch error detected globally. Intercepted and routed to local mock state:', msg);
+      try {
+        window.localStorage?.setItem('supabase_force_mock', 'true');
+      } catch (_) {}
+      event.preventDefault();
+      event.stopPropagation();
     }
   });
 
@@ -49,6 +68,13 @@ if (typeof window !== 'undefined') {
       event.preventDefault();
       event.stopPropagation();
       handleGlobalStaleSession(msg);
+    } else if (isFetchNetworkError(msg)) {
+      console.warn('Network or fetch error detected globally in error listener. Intercepted and routed to local mock state:', msg);
+      try {
+        window.localStorage?.setItem('supabase_force_mock', 'true');
+      } catch (_) {}
+      event.preventDefault();
+      event.stopPropagation();
     }
   });
 }

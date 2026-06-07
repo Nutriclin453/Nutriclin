@@ -616,7 +616,7 @@ export default function TriagemPage() {
               © {new Date().getFullYear()} Dr. Antonio Feitoza • Todos os direitos reservados.
             </p>
             <div className="text-[9px] text-slate-700 font-mono px-3 py-1 bg-slate-900/30 rounded-full border border-slate-900/40">
-              CRM • Nutrição Clínica & Performance Esportiva
+              CRN • Nutrição Clínica & Performance Esportiva
             </div>
           </div>
 
