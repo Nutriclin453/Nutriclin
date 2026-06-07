@@ -731,8 +731,8 @@ export default function Dieta() {
     const { food, qty, customName } = editingItemDraft;
 
     let itemText = "";
-    if (food === "custom") {
-      itemText = `${qty} ${customName}`;
+    if (food === "custom" || food === "custom_suple") {
+      itemText = qty ? `${qty} ${customName}` : customName;
     } else {
       const opt = FOOD_OPTIONS.find((o) => o.id === food);
       const itemNameStr = opt ? (opt.cleanName || opt.label.split(" ")[0]) : food;
@@ -989,7 +989,7 @@ export default function Dieta() {
                         return (
                           <div
                             key={itemIdx}
-                            className="flex items-center gap-3 group/item min-h-[28px]"
+                            className={`flex items-center gap-3 group/item min-h-[28px] ${isEditing ? "col-span-1 md:col-span-2" : ""}`}
                           >
                             <div className="text-primary/70 shrink-0">
                               {getFoodIcon(item)}
@@ -1212,15 +1212,14 @@ export default function Dieta() {
                             const draft = newItemDrafts[meal.id];
                             if (
                               draft?.food &&
-                              draft?.qty &&
-                              (draft.food !== "custom" || draft.customName)
+                              (draft.food === "custom" ? !!draft.customName : !!draft.qty)
                             ) {
                               const opt = FOOD_OPTIONS.find(
                                 (o) => o.id === draft.food,
                               );
                               let itemText = "";
                               if (draft.food === "custom") {
-                                itemText = `${draft.qty} ${draft.customName}`;
+                                itemText = draft.qty ? `${draft.qty} ${draft.customName}` : draft.customName;
                               } else {
                                 const itemNameStr = opt
                                   ? (opt.cleanName || opt.label.split(" ")[0])
@@ -1237,9 +1236,9 @@ export default function Dieta() {
                           }}
                           disabled={
                             !newItemDrafts[meal.id]?.food ||
-                            !newItemDrafts[meal.id]?.qty ||
-                            (newItemDrafts[meal.id]?.food === "custom" &&
-                              !newItemDrafts[meal.id]?.customName)
+                            (newItemDrafts[meal.id]?.food === "custom"
+                              ? !newItemDrafts[meal.id]?.customName
+                              : !newItemDrafts[meal.id]?.qty)
                           }
                           className="bg-primary text-on-primary p-2 flex items-center justify-center rounded-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                         >
@@ -1321,15 +1320,14 @@ export default function Dieta() {
                               const draft = newSuppDrafts[meal.id];
                               if (
                                 draft?.food &&
-                                draft?.qty &&
-                                (draft.food !== "custom_suple" || draft.customName)
+                                (draft.food === "custom_suple" ? !!draft.customName : !!draft.qty)
                               ) {
                                 const opt = SUPPLEMENT_OPTIONS.find(
                                   (o) => o.id === draft.food,
                                 );
                                 let itemText = "";
                                 if (draft.food === "custom_suple") {
-                                  itemText = `${draft.qty} ${draft.customName}`;
+                                  itemText = draft.qty ? `${draft.qty} ${draft.customName}` : draft.customName;
                                 } else {
                                   const itemNameStr = opt
                                     ? (opt.cleanName || opt.label.split(" ")[0])
@@ -1355,16 +1353,15 @@ export default function Dieta() {
                           onClick={() => {
                             const draft = newSuppDrafts[meal.id];
                             if (
-                              draft?.food &&
-                              draft?.qty &&
-                              (draft.food !== "custom_suple" || draft.customName)
+                                draft?.food &&
+                                (draft.food === "custom_suple" ? !!draft.customName : !!draft.qty)
                             ) {
                               const opt = SUPPLEMENT_OPTIONS.find(
                                   (o) => o.id === draft.food,
                                 );
                               let itemText = "";
                               if (draft.food === "custom_suple") {
-                                itemText = `${draft.qty} ${draft.customName}`;
+                                itemText = draft.qty ? `${draft.qty} ${draft.customName}` : draft.customName;
                               } else {
                                 const itemNameStr = opt
                                   ? (opt.cleanName || opt.label.split(" ")[0])
@@ -1381,9 +1378,9 @@ export default function Dieta() {
                           }}
                           disabled={
                             !newSuppDrafts[meal.id]?.food ||
-                            !newSuppDrafts[meal.id]?.qty ||
-                            (newSuppDrafts[meal.id]?.food === "custom_suple" &&
-                              !newSuppDrafts[meal.id]?.customName)
+                            (newSuppDrafts[meal.id]?.food === "custom_suple" 
+                              ? !newSuppDrafts[meal.id]?.customName
+                              : !newSuppDrafts[meal.id]?.qty)
                           }
                           className="bg-primary text-on-primary p-2 flex items-center justify-center rounded-lg hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                         >

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Scale, Check, Copy, Flame, Info, Apple } from 'lucide-react';
+import { Scale, Flame, Apple } from 'lucide-react';
 import { motion } from 'motion/react';
 
 // We import these from dieta/page.tsx or define them fallback-safe
@@ -101,7 +101,6 @@ const PRIMARY_MACRO_MAP: Record<string, 'c' | 'p' | 'f'> = {
 export function SubstitutionGuide() {
   const [sourceId, setSourceId] = useState<string>('arroz_branco');
   const [sourceQty, setSourceQty] = useState<number>(100);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const selectedOption = useMemo(() => {
     return FOOD_OPTIONS.find((o) => o.id === sourceId) || FOOD_OPTIONS[0];
@@ -218,17 +217,6 @@ export function SubstitutionGuide() {
     return list.sort((a, b) => Math.abs(a.kcal - sourceStats.kcal) - Math.abs(b.kcal - sourceStats.kcal));
   }, [currentGroup, sourceId, sourceStats]);
 
-  const handleCopy = (txt: string, id: string) => {
-    navigator.clipboard.writeText(txt);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1500);
-  };
-
-  const getCleanLabel = (qty: number, unit: string, name: string) => {
-    const formattedQty = unit === 'g' || unit === 'ml' ? `${qty}` : `${qty.toFixed(1).replace('.0', '')}`;
-    return `${formattedQty}${unit} de ${name}`;
-  };
-
   const macroTextMap = {
     c: 'Carboidratos',
     p: 'Proteínas',
@@ -336,15 +324,10 @@ export function SubstitutionGuide() {
               <p className="text-xs text-on-surface-variant italic text-center py-2">Sem substitutos equivalentes para esse item.</p>
             ) : (
               equivalents.map((eq) => {
-                const copyText = getCleanLabel(eq.equivalentQty, eq.unit, eq.cleanName);
-                const isCopied = copiedId === eq.id;
-
                 return (
                   <div
                     key={eq.id}
-                    onClick={() => handleCopy(copyText, eq.id)}
-                    className="group/item flex items-center justify-between p-2.5 rounded-xl border border-outline-variant/30 bg-surface-dim/20 hover:bg-surface-dim hover:border-primary/30 transition-all cursor-pointer text-left select-none"
-                    title="Clique para colar/copiar para o plano"
+                    className="group/item flex items-center justify-between p-2.5 rounded-xl border border-outline-variant/30 bg-surface-dim/20 transition-all text-left select-none"
                   >
                     <div className="flex-1 min-w-0 pr-2">
                       <p className="text-xs font-extrabold text-on-surface truncate">
@@ -361,32 +344,11 @@ export function SubstitutionGuide() {
                         </span>
                       </div>
                     </div>
-
-                    <button className="p-1 px-2 rounded-lg bg-surface-container-high text-[9px] font-black uppercase tracking-wide text-on-surface-variant group-hover/item:text-primary group-hover/item:border-primary/20 hover:scale-105 border border-transparent transition-all shrink-0 flex items-center gap-1">
-                      {isCopied ? (
-                        <>
-                          <Check size={10} className="text-[#4edea3]" />
-                          <span className="text-[#4edea3]">Copiado</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={10} />
-                          <span>Copiar</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 );
               })
             )}
           </div>
-        </div>
-
-        <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20 border-dashed flex items-start gap-2 text-[10px] text-emerald-300 font-semibold leading-relaxed">
-          <Info size={14} className="shrink-0 text-[#4edea3] mt-0.5" />
-          <p>
-            <strong>Dica de uso:</strong> Ao prescrever dietas na esquerda, digite a quantidade correspondente aqui ao lado para ver fatias/gramas equivalentes e clique em <strong>Copiar</strong> para colá-los nas substituições diretas do cardápio!
-          </p>
         </div>
       </div>
     </div>
