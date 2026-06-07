@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { isMockEnabled, getPatients, savePatient, deletePatient, setForceMock } from './mock-db';
+import { isMockEnabled, getPatients, savePatient, deletePatient, setForceMock, getEvaluations } from './mock-db';
 
 export interface Patient {
   id?: string;
@@ -215,9 +215,11 @@ export const PatientService = {
   async getAll() {
     let rawPatients: Patient[] = [];
     let fetchedLeads: any[] = [];
+    let fetchedEvaluations: any[] = [];
 
     if (isMockEnabled()) {
       rawPatients = getPatients();
+      fetchedEvaluations = getEvaluations();
       try {
         const item = typeof window !== 'undefined' ? localStorage.getItem('mock_leads') : null;
         if (item) fetchedLeads = JSON.parse(item);
@@ -258,13 +260,43 @@ export const PatientService = {
         } catch (e) {
           console.warn('Could not fetch leads for patient enrichment:', e);
         }
+
+        try {
+          const { data: evalsData } = await supabase
+            .from('evaluations')
+            .select('*');
+          if (evalsData) fetchedEvaluations = evalsData;
+        } catch (e) {
+          console.warn('Could not fetch evaluations for patient enrichment:', e);
+        }
       } catch (err) {
         return handleFetchError(err, () => {
           rawPatients = getPatients();
+          fetchedEvaluations = getEvaluations();
           try {
             const item = typeof window !== 'undefined' ? localStorage.getItem('mock_leads') : null;
             if (item) fetchedLeads = JSON.parse(item);
           } catch (_) {}
+
+          const findLatestEvaluationDate = (patientName: string) => {
+            const pName = patientName.toLowerCase().trim();
+            const patientEvals = fetchedEvaluations.filter(ev => {
+              const evName = (ev.patientName || ev.patient_name || '').toLowerCase().trim();
+              return evName === pName;
+            });
+            if (patientEvals.length === 0) return null;
+            
+            const times = patientEvals.map(ev => {
+              const rawDate = ev.createdAt || ev.created_at;
+              if (!rawDate) return 0;
+              const t = new Date(rawDate).getTime();
+              return isNaN(t) ? 0 : t;
+            }).filter(t => t > 0);
+            
+            if (times.length === 0) return null;
+            return new Date(Math.max(...times));
+          };
+
           return rawPatients.map(p => {
             let calculatedAge: number | undefined = undefined;
             if (p.birthDate) {
@@ -277,8 +309,33 @@ export const PatientService = {
               (l.email && p.email && l.email.toLowerCase().trim() === p.email.toLowerCase().trim()) ||
               (l.name && p.name && l.name.toLowerCase().trim() === p.name.toLowerCase().trim())
             );
+
+            let latestVisitDate: Date | null = null;
+            const lv = p.lastVisit || (p as any).last_visit;
+            if (lv) {
+              try {
+                let d: Date;
+                if (typeof lv.toDate === 'function') {
+                  d = lv.toDate();
+                } else {
+                  d = new Date(lv);
+                }
+                if (!isNaN(d.getTime())) {
+                  latestVisitDate = d;
+                }
+              } catch (_) {}
+            }
+            
+            const evalDate = findLatestEvaluationDate(p.name);
+            if (evalDate) {
+              if (!latestVisitDate || evalDate.getTime() > latestVisitDate.getTime()) {
+                latestVisitDate = evalDate;
+              }
+            }
+
             return {
               ...p,
+              lastVisit: latestVisitDate ? { toDate: () => latestVisitDate } : null,
               age: calculatedAge ?? p.age ?? p.idade ?? matchingLead?.age ?? matchingLead?.idade,
               idade: calculatedAge ?? p.idade ?? p.age ?? matchingLead?.idade ?? matchingLead?.age,
               weight: p.weight ?? p.peso ?? matchingLead?.weight ?? matchingLead?.peso,
@@ -292,6 +349,25 @@ export const PatientService = {
         });
       }
     }
+
+    const findLatestEvaluationDate = (patientName: string) => {
+      const pName = patientName.toLowerCase().trim();
+      const patientEvals = fetchedEvaluations.filter(ev => {
+        const evName = (ev.patientName || ev.patient_name || '').toLowerCase().trim();
+        return evName === pName;
+      });
+      if (patientEvals.length === 0) return null;
+      
+      const times = patientEvals.map(ev => {
+        const rawDate = ev.createdAt || ev.created_at;
+        if (!rawDate) return 0;
+        const t = new Date(rawDate).getTime();
+        return isNaN(t) ? 0 : t;
+      }).filter(t => t > 0);
+      
+      if (times.length === 0) return null;
+      return new Date(Math.max(...times));
+    };
 
     return (rawPatients || []).map(p => {
       let calculatedAge: number | undefined = undefined;
@@ -308,9 +384,32 @@ export const PatientService = {
         (l.name && p.name && l.name.toLowerCase().trim() === p.name.toLowerCase().trim())
       );
 
+      let latestVisitDate: Date | null = null;
+      const lv = p.lastVisit || (p as any).last_visit;
+      if (lv) {
+        try {
+          let d: Date;
+          if (typeof lv.toDate === 'function') {
+            d = lv.toDate();
+          } else {
+            d = new Date(lv);
+          }
+          if (!isNaN(d.getTime())) {
+            latestVisitDate = d;
+          }
+        } catch (_) {}
+      }
+      
+      const evalDate = findLatestEvaluationDate(p.name);
+      if (evalDate) {
+        if (!latestVisitDate || evalDate.getTime() > latestVisitDate.getTime()) {
+          latestVisitDate = evalDate;
+        }
+      }
+
       return {
         ...p,
-        lastVisit: p.lastVisit || (p as any).last_visit ? { toDate: () => new Date(p.lastVisit || (p as any).last_visit) } : null,
+        lastVisit: latestVisitDate ? { toDate: () => latestVisitDate } : null,
         birthDate: bDate,
         age: calculatedAge ?? p.age ?? p.idade ?? matchingLead?.age ?? matchingLead?.idade,
         idade: calculatedAge ?? p.idade ?? p.age ?? matchingLead?.idade ?? matchingLead?.age,
