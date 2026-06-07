@@ -23,6 +23,8 @@ export default function PainelLayout({
     <html lang="pt-BR" className="dark" suppressHydrationWarning>
       <head>
         <script
+          id="theme-script"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `
               try {

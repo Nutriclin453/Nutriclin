@@ -68,6 +68,7 @@ const defaultPatients: Patient[] = [
     status: 'Ativo',
     gender: 'Masculino',
     birthDate: '2000-01-01',
+    lastVisit: '2026-05-19T14:30:00Z',
     createdAt: new Date().toISOString()
   },
   {
@@ -79,6 +80,7 @@ const defaultPatients: Patient[] = [
     status: 'Ativo',
     gender: 'Masculino',
     birthDate: '1995-05-15',
+    lastVisit: '2026-06-02T10:00:00Z',
     createdAt: new Date().toISOString()
   }
 ];

@@ -33,6 +33,22 @@ export default function Pacientes() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingPatientId, setLoadingPatientId] = useState<string | null>(null);
 
+  const formatLastVisitDate = (lastVisit: any) => {
+    if (!lastVisit) return 'Sem registro';
+    try {
+      if (typeof lastVisit.toDate === 'function') {
+        return lastVisit.toDate().toLocaleDateString('pt-BR');
+      }
+      const d = new Date(lastVisit);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('pt-BR');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return 'Sem registro';
+  };
+
   const syncLeadsToPatients = async (currentPatients: Patient[]) => {
     try {
       let leads: any[] = [];
@@ -258,9 +274,15 @@ export default function Pacientes() {
                                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest bg-[#00FF55]/15 text-[#00FF66] border border-[#00FF55]/30 rounded shrink-0 animate-pulse">
                                    Novo
                                  </span>
-                               )}
+                                )}
                              </div>
-                             <p className="text-[10px] text-on-surface-variant font-medium uppercase mt-0.5">ID: {patient.id?.slice(-6)}</p>
+                             <div className="flex flex-col gap-0.5 mt-0.5">
+                               <p className="text-[10px] text-on-surface-variant font-medium uppercase">ID: {patient.id?.slice(-6)}</p>
+                               <div className="md:hidden flex items-center gap-1.5 font-bold text-xs text-primary mt-1">
+                                 <Calendar size={11} />
+                                 <span>Consulta: {formatLastVisitDate(patient.lastVisit || (patient as any).last_visit)}</span>
+                               </div>
+                             </div>
                           </div>
                         </div>
                       </td>
@@ -278,7 +300,7 @@ export default function Pacientes() {
                         <div className="flex items-center gap-2 text-xs text-on-surface">
                           <Calendar size={14} className="text-on-surface-variant" />
                           <span className="font-medium">
-                            {patient.lastVisit ? patient.lastVisit.toDate().toLocaleDateString('pt-BR') : 'Sem registro'}
+                            {formatLastVisitDate(patient.lastVisit || (patient as any).last_visit)}
                           </span>
                         </div>
                       </td>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, User, Mail, Phone, Target, Trash2 } from 'lucide-react';
+import { X, Save, User, Mail, Phone, Target, Trash2, Calendar } from 'lucide-react';
 import { Patient, PatientService } from '@/lib/patient-service';
 
 interface PatientModalProps {
@@ -26,14 +26,33 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
 
   useEffect(() => {
     if (patient) {
-      setFormData(patient);
+      let dateValue = '';
+      const lv = patient.lastVisit || (patient as any).last_visit;
+      if (lv) {
+        try {
+          let d: Date;
+          if (typeof lv.toDate === 'function') {
+            d = lv.toDate();
+          } else {
+            d = new Date(lv);
+          }
+          if (!isNaN(d.getTime())) {
+            dateValue = d.toISOString().split('T')[0];
+          }
+        } catch (_) {}
+      }
+      setFormData({
+        ...patient,
+        lastVisit: dateValue
+      });
     } else {
       setFormData({
         name: '',
         email: '',
         phone: '',
         goal: '',
-        status: 'Ativo'
+        status: 'Ativo',
+        lastVisit: ''
       });
     }
     setError(null);
@@ -54,6 +73,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
       status: formData.status || 'Ativo',
       birthDate: formData.birthDate || null,
       gender: formData.gender || null,
+      lastVisit: formData.lastVisit ? new Date(formData.lastVisit).toISOString() : null
     };
 
     try {
@@ -206,7 +226,7 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
                 </div>
 
                 <div className="space-y-2">
-                   <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-1">Status</label>
+                   <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-1 font-sans">Status</label>
                    <div className="flex gap-4">
                      {['Ativo', 'Inativo'].map(s => (
                        <button
@@ -223,6 +243,19 @@ export function PatientModal({ isOpen, onClose, patient, onSuccess }: PatientMod
                        </button>
                      ))}
                    </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-1 font-sans">Última Consulta</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-primary" size={18} />
+                    <input 
+                      type="date"
+                      value={formData.lastVisit || ''}
+                      onChange={(e) => setFormData({...formData, lastVisit: e.target.value})}
+                      className="w-full bg-surface-container-high border border-outline-variant rounded-xl py-3 pl-10 pr-4 text-on-surface outline-none focus:border-primary transition-all font-medium"
+                    />
+                  </div>
                 </div>
               </div>
 
