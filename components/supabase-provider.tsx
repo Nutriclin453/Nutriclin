@@ -31,10 +31,37 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const hasEnv = process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
+    const isMockForced = typeof window !== 'undefined' && localStorage.getItem('supabase_force_mock') === 'true';
+    const hasEnv = !isMockForced && 
+                   process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined && 
                    process.env.NEXT_PUBLIC_SUPABASE_URL !== '' && 
                    !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co');
+    
+    let isMounted = true;
+
+    // Safety fallback: if auth connection hangs (e.g., cold start, paused DB, or CORS issue), 
+    // bypass the loading screen after 4 seconds to keep the application operational.
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn('Authentication loading timeout reached. Resolving with fallback.');
+        if (typeof window !== 'undefined') {
+          try {
+            const storedUserJson = localStorage.getItem('mock_user_session');
+            if (storedUserJson) {
+              const parsed = JSON.parse(storedUserJson);
+              setUser(parsed.user || null);
+              setSession(parsed || null);
+            }
+          } catch (e) {
+            console.error('Error loading mock user session during timeout fallback:', e);
+          }
+        }
+        setLoading(false);
+      }
+    }, 4000);
+
     if (!hasEnv) {
+      clearTimeout(safetyTimeout);
       if (typeof window !== 'undefined') {
         try {
           const storedUserJson = localStorage.getItem('mock_user_session');
@@ -55,6 +82,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     }
 
     supabase.auth.getSession().then(({ data, error }) => {
+      clearTimeout(safetyTimeout);
+      if (!isMounted) return;
+
       if (error) {
         console.warn('Session retrieval encountered error:', error);
         const errMsg = error.message || '';
@@ -85,6 +115,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
     }).catch((err) => {
+      clearTimeout(safetyTimeout);
+      if (!isMounted) return;
+
       console.error('Error in getSession, setting forceMock:', err);
       const msg = err.message || String(err);
       if (msg.includes('Invalid Refresh Token') || msg.includes('Refresh Token Not Found') || msg.includes('refresh_token_not_found')) {
@@ -120,6 +153,9 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      clearTimeout(safetyTimeout);
+      if (!isMounted) return;
+
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -153,7 +189,11 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginWithEmail = async (email: string, pass: string) => {
@@ -245,17 +285,29 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleSystemLogout = async () => {
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || 
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('supabase_force_mock');
+        localStorage.removeItem('mock_user_session');
+      } catch (e) {}
+    }
+
+    const isMockForced = typeof window !== 'undefined' && localStorage.getItem('supabase_force_mock') === 'true';
+    if (isMockForced || 
+        process.env.NEXT_PUBLIC_SUPABASE_URL === undefined || 
         process.env.NEXT_PUBLIC_SUPABASE_URL === '' || 
         process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')) {
       setUser(null);
       setSession(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('mock_user_session');
-      }
       return;
     }
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out threw exception, force-clearing locally:', e);
+    }
+    setUser(null);
+    setSession(null);
   };
 
   return (

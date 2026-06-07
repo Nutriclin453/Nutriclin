@@ -21,7 +21,10 @@ import {
   Beef,
   Egg,
   Utensils,
-  ShoppingCart
+  ShoppingCart,
+  Pencil,
+  Check,
+  X
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Patient, PatientService } from "@/lib/patient-service";
@@ -30,6 +33,83 @@ import { useAuth } from "@/components/supabase-provider";
 import { setForceMock } from "@/lib/mock-db";
 import { ShoppingListModal } from "@/components/shopping-list-modal";
 import { SubstitutionGuide } from "@/components/substitution-guide";
+import { ClinicalTemplateManager } from "@/components/clinical-template-manager";
+
+const parseMealItem = (itemText: string) => {
+  const numRegex = /^([\d.,]+)/;
+  const numMatch = itemText.match(numRegex);
+  if (!numMatch) {
+    return {
+      food: "custom",
+      qty: "1",
+      customName: itemText
+    };
+  }
+
+  const qtyStr = numMatch[1].replace(',', '.');
+  const qty = parseFloat(qtyStr) || 1;
+  let rest = itemText.substring(numMatch[0].length).trim();
+
+  let detectedUnit = "";
+  let foodName = rest;
+  const commonUnits = [
+    "g", "ml", "fatias", "fatia", "colher de sopa", "colheres de sopa", 
+    "colher", "colheres", "unidade", "unidades", "dosador", "dosadores", 
+    "xícara", "xícaras", "pedaço", "pedaços", "scoop", "scoops"
+  ];
+
+  for (const u of commonUnits) {
+    if (rest.toLowerCase().startsWith(u + " ")) {
+      detectedUnit = u;
+      foodName = rest.substring(u.length + 1).trim();
+      break;
+    } else if (rest.toLowerCase().startsWith(u + " de ")) {
+      detectedUnit = u;
+      foodName = rest.substring(u.length + 4).trim();
+      break;
+    } else if (rest.toLowerCase() === u) {
+      detectedUnit = u;
+      foodName = "";
+      break;
+    }
+  }
+
+  if (!detectedUnit) {
+    const unitAttachRegex = /^([a-zA-Záéíóúâêîôûãõç]+)\s*(?:de\s+)?(.*)$/i;
+    const attachMatch = rest.match(unitAttachRegex);
+    if (attachMatch) {
+      const u = attachMatch[1].toLowerCase();
+      if (u === "g" || u === "ml") {
+        detectedUnit = u;
+        foodName = attachMatch[2].trim();
+      }
+    }
+  }
+
+  if (foodName.toLowerCase().startsWith("de ")) {
+    foodName = foodName.substring(3).trim();
+  }
+
+  const matchedOpt = FOOD_OPTIONS.find((opt) => {
+    const clean = opt.cleanName.toLowerCase();
+    const target = foodName.toLowerCase();
+    return target === clean || target.includes(clean) || clean.includes(target);
+  });
+
+  if (matchedOpt && matchedOpt.id !== "custom") {
+    return {
+      food: matchedOpt.id,
+      qty: String(qty),
+      customName: ""
+    };
+  }
+
+  return {
+    food: "custom",
+    qty: String(qty),
+    customName: rest
+  };
+};
 
 const PRESET_GOALS = [
   "Hipertrofia",
@@ -371,6 +451,12 @@ export default function Dieta() {
   >({});
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<{ mealId: string; itemIdx: number } | null>(null);
+  const [editingItemDraft, setEditingItemDraft] = useState<{
+    food: string;
+    qty: string;
+    customName: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -639,6 +725,39 @@ export default function Dieta() {
     );
   };
 
+  const saveEditedItem = () => {
+    if (!editingItemId || !editingItemDraft) return;
+    const { mealId, itemIdx } = editingItemId;
+    const { food, qty, customName } = editingItemDraft;
+
+    let itemText = "";
+    if (food === "custom") {
+      itemText = `${qty} ${customName}`;
+    } else {
+      const opt = FOOD_OPTIONS.find((o) => o.id === food);
+      const itemNameStr = opt ? (opt.cleanName || opt.label.split(" ")[0]) : food;
+      const unit = opt ? opt.unit : "g";
+      itemText = `${qty}${unit} de ${itemNameStr}`;
+    }
+
+    setMeals(
+      meals.map((m) => {
+        if (m.id === mealId) {
+          const updatedItems = [...m.items];
+          if (itemText.trim() === "") {
+            updatedItems.splice(itemIdx, 1);
+          } else {
+            updatedItems[itemIdx] = itemText.trim();
+          }
+          return { ...m, items: updatedItems };
+        }
+        return m;
+      })
+    );
+    setEditingItemId(null);
+    setEditingItemDraft(null);
+  };
+
   // Recalculate percentages when macros change
   const handleMacroChange = (
     field: "protein" | "carbs" | "fats" | "hydration",
@@ -865,25 +984,121 @@ export default function Dieta() {
 
                     {/* Food Items Grid*/}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 pt-2">
-                      {meal.items.map((item, itemIdx) => (
-                        <div
-                          key={itemIdx}
-                          className="flex items-start gap-3 group/item"
-                        >
-                          <div className="text-primary/70 shrink-0 mt-0.5">
-                            {getFoodIcon(item)}
-                          </div>
-                          <span className="text-sm font-medium text-on-surface/90 flex-1 leading-snug">
-                            {item}
-                          </span>
-                          <button
-                            onClick={() => removeMealItem(meal.id, itemIdx)}
-                            className="text-on-surface-variant hover:text-error opacity-0 group-hover/item:opacity-100 transition-opacity"
+                      {meal.items.map((item, itemIdx) => {
+                        const isEditing = editingItemId?.mealId === meal.id && editingItemId?.itemIdx === itemIdx;
+                        return (
+                          <div
+                            key={itemIdx}
+                            className="flex items-center gap-3 group/item min-h-[28px]"
                           >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                            <div className="text-primary/70 shrink-0">
+                              {getFoodIcon(item)}
+                            </div>
+                            
+                            {isEditing && editingItemDraft ? (
+                              <div className="flex items-center gap-1.5 flex-1 bg-surface-dim/80 p-1.5 rounded-xl border border-[#38bdf8] flex-wrap md:flex-nowrap">
+                                <select
+                                  value={editingItemDraft.food}
+                                  onChange={(e) => {
+                                    setEditingItemDraft({
+                                      ...editingItemDraft,
+                                      food: e.target.value,
+                                    });
+                                  }}
+                                  className="bg-surface border border-outline-variant text-[11px] font-semibold text-on-surface rounded-md p-1 outline-none focus:border-primary flex-1 min-w-[100px]"
+                                >
+                                  <option value="custom">Outro (Customizado)...</option>
+                                  {FOOD_OPTIONS.map((opt) => (
+                                    <option key={opt.id} value={opt.id}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {editingItemDraft.food === "custom" && (
+                                  <input
+                                    type="text"
+                                    placeholder="Nome do alimento"
+                                    value={editingItemDraft.customName}
+                                    onChange={(e) => {
+                                      setEditingItemDraft({
+                                        ...editingItemDraft,
+                                        customName: e.target.value,
+                                      });
+                                    }}
+                                    className="bg-surface border border-outline-variant text-[11px] font-semibold text-on-surface rounded-md p-1 outline-none focus:border-primary flex-1 min-w-[90px]"
+                                  />
+                                )}
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    placeholder="Qtd."
+                                    value={editingItemDraft.qty}
+                                    onChange={(e) => {
+                                      setEditingItemDraft({
+                                        ...editingItemDraft,
+                                        qty: e.target.value,
+                                      });
+                                    }}
+                                    className="bg-surface border border-outline-variant text-[11px] font-semibold text-on-surface rounded-md p-1 outline-none focus:border-primary w-12 text-center"
+                                  />
+                                  <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-wider">
+                                    {FOOD_OPTIONS.find((o) => o.id === editingItemDraft.food)?.unit || "un."}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={saveEditedItem}
+                                    className="p-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 hover:scale-105 transition-all"
+                                    title="Salvar Alteração"
+                                  >
+                                    <Check size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingItemId(null);
+                                      setEditingItemDraft(null);
+                                    }}
+                                    className="p-1 rounded-md bg-surface-container-high text-on-surface-variant hover:text-error border border-outline-variant hover:scale-105 transition-all"
+                                    title="Cancelar"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-sm font-medium text-on-surface/90 flex-1 leading-snug truncate">
+                                {item}
+                              </span>
+                            )}
+                            
+                            <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                              {!isEditing && (
+                                <button
+                                  onClick={() => {
+                                    setEditingItemId({ mealId: meal.id, itemIdx });
+                                    setEditingItemDraft(parseMealItem(item));
+                                  }}
+                                  className="text-on-surface-variant hover:text-[#38bdf8] transition-colors"
+                                  title="Editar Alimento"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => removeMealItem(meal.id, itemIdx)}
+                                className="text-on-surface-variant hover:text-error transition-colors"
+                                title="Remover"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Add new item input */}
@@ -1311,6 +1526,24 @@ export default function Dieta() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
+
+              {/* Clinical Template Manager */}
+              <ClinicalTemplateManager
+                type="diet"
+                currentData={{ meals, macros, notes, goal }}
+                onApply={(data) => {
+                  if (data.meals) setMeals(data.meals);
+                  if (data.notes !== undefined) setNotes(data.notes);
+                  if (data.goal) setGoal(data.goal);
+                  if (data.macros) {
+                    setMacros((prev) => ({
+                      ...prev,
+                      ...data.macros
+                    }));
+                  }
+                }}
+                disabled={!selectedPatientId}
+              />
 
               {/* Substitution Calculator Guide */}
               <SubstitutionGuide />

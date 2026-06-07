@@ -25,6 +25,7 @@ import { Patient, PatientService } from '@/lib/patient-service';
 import { WorkoutService, Exercise, WorkoutPlan } from '@/lib/workout-service';
 import { useAuth } from '@/components/supabase-provider';
 import { setForceMock } from '@/lib/mock-db';
+import { ClinicalTemplateManager } from '@/components/clinical-template-manager';
 
 const EXERCISE_DATABASE: Record<string, { name: string; image: string }[]> = {
   'Peito': [
@@ -664,6 +665,49 @@ export default function Treinos() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
+            {/* Clinical Template Manager */}
+            <div className="print:hidden">
+              <ClinicalTemplateManager
+                type="workout"
+                currentData={{ exercises: workouts }}
+                onApply={(data) => {
+                  if (data.exercises && data.exercises.length > 0) {
+                    const normalized = data.exercises.map((ex: any) => {
+                      let t = ex.treino;
+                      
+                      // Fallback to active tab if treino is missing
+                      if (!t) {
+                        t = activeTab;
+                      } else {
+                        // Normalize shorthands
+                        if (t === 'A') t = 'Treino A';
+                        else if (t === 'B') t = 'Treino B';
+                        else if (t === 'C') t = 'Treino C';
+                        else if (t === 'D') t = 'Treino D';
+                        else if (t === 'E') t = 'Treino E';
+                        else if (t === 'F') t = 'Treino F';
+                      }
+
+                      return { ...ex, treino: t };
+                    });
+
+                    // Identify which tabs are present in the new data
+                    const incomingTabs = Array.from(new Set(normalized.map(ex => ex.treino)));
+                    
+                    // Merge: Keep everything from other tabs, replace only the tab(s) being applied
+                    setWorkouts(prev => {
+                      const otherTabsData = prev.filter(ex => !incomingTabs.includes(ex.treino));
+                      return [...otherTabsData, ...normalized];
+                    });
+                    
+                    // Force editing mode so user can see what was applied
+                    setIsEditing(true);
+                  }
+                }}
+                disabled={!selectedPatientId}
+              />
+            </div>
+
             {/* Trainer Analysis */}
             <section className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-3xl p-8 space-y-8 print:hidden">
               <div className="flex items-center gap-3">

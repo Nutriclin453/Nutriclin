@@ -46,9 +46,41 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   if (authLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 space-y-4">
-        <Loader2 className="animate-spin text-primary" size={48} />
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">Autenticando...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 px-4 text-center space-y-6">
+        <div className="relative">
+          <Loader2 className="animate-spin text-primary relative z-10" size={48} />
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
+        </div>
+        
+        <div className="space-y-1.5 max-w-sm">
+          <p className="text-sm font-black text-slate-700 dark:text-slate-100 uppercase tracking-widest animate-pulse">
+            Autenticando...
+          </p>
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
+            Conectando com o banco de dados seguro para carregar seu perfil clínico.
+          </p>
+        </div>
+
+        <div className="pt-4 max-w-xs border-t border-slate-200/50 dark:border-slate-800/50">
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mb-2 leading-snug">
+            Caso esteja offline ou a sincronização com a nuvem demore mais do que o esperado:
+          </p>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                try {
+                  localStorage.setItem('supabase_force_mock', 'true');
+                  window.location.reload();
+                } catch (e) {
+                  console.error(e);
+                }
+              }
+            }}
+            className="w-full text-xs font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 py-3 px-4 rounded-xl transition-all border border-slate-200 dark:border-slate-800 uppercase tracking-wide hover:scale-[1.02] shadow-sm cursor-pointer"
+          >
+            Acessar Modo Local / Demo
+          </button>
+        </div>
       </div>
     );
   }
