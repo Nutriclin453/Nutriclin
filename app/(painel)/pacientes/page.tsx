@@ -13,10 +13,12 @@ import {
   CheckCircle2, 
   Clock, 
   Edit, 
-  Trash2 
+  Trash2,
+  ClipboardList
 } from 'lucide-react';
 import { Patient, PatientService } from '@/lib/patient-service';
 import { PatientModal } from '@/components/patient-modal';
+import { AnamnesisModal } from '@/components/anamnesis-modal';
 import { useAuth } from '@/components/supabase-provider';
 import { motion } from 'motion/react';
 import { supabase } from '@/lib/supabase';
@@ -32,6 +34,8 @@ export default function Pacientes() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingPatientId, setLoadingPatientId] = useState<string | null>(null);
+  const [isAnamnesisOpen, setIsAnamnesisOpen] = useState(false);
+  const [selectedPatientForAnamnesis, setSelectedPatientForAnamnesis] = useState<Patient | null>(null);
 
   const formatLastVisitDate = (lastVisit: any) => {
     if (!lastVisit) return 'Sem registro';
@@ -386,6 +390,17 @@ export default function Pacientes() {
                         ) : (
                           <>
                             <button 
+                              onClick={() => {
+                                setSelectedPatientForAnamnesis(patient);
+                                setIsAnamnesisOpen(true);
+                              }}
+                              className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all animate-none"
+                              title="Anamnese & Hábitos"
+                            >
+                              <ClipboardList size={18} className="text-primary animate-none" />
+                            </button>
+
+                            <button 
                               onClick={() => handleEdit(patient)}
                               className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
                               title="Editar Paciente"
@@ -420,6 +435,15 @@ export default function Pacientes() {
         onClose={() => setIsModalOpen(false)}
         patient={selectedPatient}
         onSuccess={fetchPatients}
+      />
+
+      <AnamnesisModal 
+        isOpen={isAnamnesisOpen}
+        onClose={() => {
+          setIsAnamnesisOpen(false);
+          setSelectedPatientForAnamnesis(null);
+        }}
+        patient={selectedPatientForAnamnesis}
       />
     </DashboardLayout>
   );

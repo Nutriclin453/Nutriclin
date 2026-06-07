@@ -59,17 +59,39 @@ export default function Dashboard() {
         setTotalEvaluations(evaluationsData?.length || 0);
         setTotalDiets(dietsData?.length || 0);
 
-        // Filter the leads (triagem page participants) who do not have any evaluations.
-        // A completed assessment (evaluation) means they are already attended.
+        // Filter the leads (triagem page participants) who are NOT registered as patients and do not have any evaluations.
+        // A registered patient or a completed assessment means they are already attended.
+        const patientNames = new Set(
+          (patientsData || []).map(p => (p.name || '').toLowerCase().trim())
+        );
+        const patientEmails = new Set(
+          (patientsData || []).map(p => (p.email || '').toLowerCase().trim()).filter(Boolean)
+        );
+        const patientPhones = new Set(
+          (patientsData || []).map(p => {
+            const raw = p.phone || (p as any).telefone || (p as any).whatsapp || '';
+            return raw.replace(/\D/g, '');
+          }).filter(Boolean)
+        );
+
         const evaluatedNames = new Set(
           (evaluationsData || []).map(e => (e.patientName || '').toLowerCase().trim())
         );
 
         const pendingLeads = (leadsData || []).filter(lead => {
           const leadName = (lead.name || '').toLowerCase().trim();
-          if (leadName === '__nutritionist_system_metadata_do_not_delete__') return false;
-          // Filter out anyone who has been registered/evaluated 
-          return !evaluatedNames.has(leadName);
+          if (!leadName || leadName === '__nutritionist_system_metadata_do_not_delete__') return false;
+          
+          const leadEmail = (lead.email || '').toLowerCase().trim();
+          const leadPhone = (lead.phone || '').replace(/\D/g, '');
+
+          // Filter out anyone who has been registered as a patient or evaluated
+          if (evaluatedNames.has(leadName)) return false;
+          if (patientNames.has(leadName)) return false;
+          if (leadEmail && patientEmails.has(leadEmail)) return false;
+          if (leadPhone && patientPhones.has(leadPhone)) return false;
+
+          return true;
         });
 
         const upcoming = pendingLeads.map(lead => {

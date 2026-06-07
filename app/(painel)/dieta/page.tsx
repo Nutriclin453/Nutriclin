@@ -21,12 +21,15 @@ import {
   Beef,
   Egg,
   Utensils,
+  ShoppingCart
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Patient, PatientService } from "@/lib/patient-service";
 import { Diet, DietService, Meal, Macros } from "@/lib/diet-service";
 import { useAuth } from "@/components/supabase-provider";
 import { setForceMock } from "@/lib/mock-db";
+import { ShoppingListModal } from "@/components/shopping-list-modal";
+import { SubstitutionGuide } from "@/components/substitution-guide";
 
 const PRESET_GOALS = [
   "Hipertrofia",
@@ -135,7 +138,7 @@ const getDefaultMeals = (): Meal[] =>
     items: [],
   }));
 
-const FOOD_DATABASE = [
+export const FOOD_DATABASE = [
   // Proteínas (Carnes, aves, peixes e ovos)
   { names: ["frango", "frango grelhado", "peito de frango"], p: 0.315, c: 0.0, f: 0.03, isUnit: false },
   { names: ["carne", "boi", "bife", "carne vermelha", "alcatra"], p: 0.319, c: 0.0, f: 0.116, isUnit: false },
@@ -207,7 +210,7 @@ const FOOD_DATABASE = [
   { names: ["maca peruana", "maca"], p: 0.12, c: 0.60, f: 0.01, isUnit: false }
 ];
 
-const FOOD_OPTIONS = [
+export const FOOD_OPTIONS = [
   // --- Cereais, tubérculos e pães ---
   { id: "arroz_branco", label: "🍚 [Cereais] Arroz Branco Cozido (g)", cleanName: "Arroz Branco", unit: "g" },
   { id: "arroz_integral", label: "🌾 [Cereais] Arroz Integral Cozido (g)", cleanName: "Arroz Integral", unit: "g" },
@@ -367,6 +370,7 @@ export default function Dieta() {
     Record<string, { food: string; qty: string; customName: string }>
   >({});
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -696,6 +700,15 @@ export default function Dieta() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsShoppingListOpen(true)}
+              disabled={!selectedPatientId || meals.length === 0}
+              className="bg-surface-container-highest text-on-surface hover:text-primary px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-surface-dim transition-all border border-outline-variant disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Gerar Lista de Compras baseada no cardápio"
+            >
+              <ShoppingCart size={18} className="text-primary animate-none" />
+              Lista de Compras
+            </button>
             <button
               onClick={() => window.print()}
               disabled={!selectedPatientId}
@@ -1298,6 +1311,9 @@ export default function Dieta() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
+
+              {/* Substitution Calculator Guide */}
+              <SubstitutionGuide />
             </div>
           </div>
         )}
@@ -1419,6 +1435,13 @@ export default function Dieta() {
           </div>
         </div>
       )}
+
+      <ShoppingListModal 
+        isOpen={isShoppingListOpen}
+        onClose={() => setIsShoppingListOpen(false)}
+        meals={meals}
+        patientName={patients.find((p) => p.id === selectedPatientId)?.name || 'Paciente'}
+      />
     </DashboardLayout>
   );
 }
