@@ -14,7 +14,8 @@ import {
   LogOut,
   Info,
   X,
-  Activity
+  Activity,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/components/supabase-provider';
 import { useSidebar } from '@/components/sidebar-context';
@@ -28,8 +29,9 @@ export function Sidebar() {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+    { icon: Calendar, label: 'Agenda', href: '/agenda' },
     { icon: Users, label: 'Pacientes', href: '/pacientes' },
-    { icon: Calendar, label: 'Avaliações', href: '/avaliacoes' },
+    { icon: FileText, label: 'Avaliações', href: '/avaliacoes' },
     { icon: Apple, label: 'Dieta', href: '/dieta' },
     { icon: Dumbbell, label: 'Treinos', href: '/treinos' },
     { icon: Activity, label: 'Exame', href: '/exames' },

@@ -4,6 +4,18 @@ import { Evaluation } from './evaluation-service';
 import { Diet } from './diet-service';
 import { WorkoutPlan } from './workout-service';
 
+export interface Appointment {
+  id?: string;
+  patientId: string;
+  patientName: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  notes?: string;
+  status: 'Marcado' | 'Concluído' | 'Cancelado';
+  createdBy?: string;
+  createdAt?: string;
+}
+
 let forceMock = false;
 
 export const setForceMock = (val: boolean): void => {
@@ -249,6 +261,18 @@ const defaultWorkouts: WorkoutPlan[] = [
   }
 ];
 
+const defaultAppointments: Appointment[] = [
+  {
+    id: 'app-seed-1',
+    patientId: '患者-allan',
+    patientName: 'Allan',
+    date: new Date().toISOString().split('T')[0],
+    time: '14:00',
+    status: 'Marcado',
+    createdAt: new Date().toISOString()
+  }
+];
+
 export const getPatients = (): Patient[] => {
   return getStorageItem<Patient[]>('mock_patients', defaultPatients);
 };
@@ -384,4 +408,42 @@ export const saveWorkout = (plan: WorkoutPlan): WorkoutPlan => {
 export const deleteWorkout = (id: string): void => {
   const list = getWorkouts().filter(item => item.id !== id);
   setStorageItem('mock_workouts', list);
+};
+
+// Appointments
+export const getAppointments = (): Appointment[] => {
+  return getStorageItem<Appointment[]>('mock_appointments', defaultAppointments);
+};
+
+export const saveAppointment = (app: Appointment): Appointment => {
+  const list = getAppointments();
+  let updated: Appointment;
+  if (app.id) {
+    let found = false;
+    list.forEach((item, idx) => {
+      if (item.id === app.id) {
+        list[idx] = { ...item, ...app };
+        updated = list[idx];
+        found = true;
+      }
+    });
+    if (!found) {
+      updated = app;
+      list.push(updated);
+    }
+  } else {
+    updated = {
+      ...app,
+      id: 'app-' + Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString()
+    };
+    list.push(updated);
+  }
+  setStorageItem('mock_appointments', list);
+  return updated;
+};
+
+export const deleteAppointment = (id: string): void => {
+  const list = getAppointments().filter(item => item.id !== id);
+  setStorageItem('mock_appointments', list);
 };
