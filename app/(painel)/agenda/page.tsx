@@ -25,9 +25,22 @@ const TIME_SLOTS = [
   '18:00', '19:00', '20:00'
 ];
 
+// Timezone-safe local date formatting & parsing helpers
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateLocal = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0); // midday safety against DST shifts
+};
+
 export default function AgendaPage() {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day'>('month');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(formatDateLocal(new Date()));
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [monthAppointments, setMonthAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -38,7 +51,7 @@ export default function AgendaPage() {
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Calendar Helper Functions
+  // Calendar Helper Functions (midday safety prevents any TZ/DST offsets)
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -50,19 +63,31 @@ export default function AgendaPage() {
 
     // Padding for first week
     for (let i = firstDay; i > 0; i--) {
-      days.push({ day: prevMonthDays - i + 1, currentMonth: false, date: new Date(year, month - 1, prevMonthDays - i + 1) });
+      days.push({ 
+        day: prevMonthDays - i + 1, 
+        currentMonth: false, 
+        date: new Date(year, month - 1, prevMonthDays - i + 1, 12, 0, 0) 
+      });
     }
 
     // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
-      days.push({ day: i, currentMonth: true, date: new Date(year, month, i) });
+      days.push({ 
+        day: i, 
+        currentMonth: true, 
+        date: new Date(year, month, i, 12, 0, 0) 
+      });
     }
 
     // Padding for last week
     const totalDays = 42; // 6 rows of 7 days
     const remainingDays = totalDays - days.length;
     for (let i = 1; i <= remainingDays; i++) {
-      days.push({ day: i, currentMonth: false, date: new Date(year, month + 1, i) });
+      days.push({ 
+        day: i, 
+        currentMonth: false, 
+        date: new Date(year, month + 1, i, 12, 0, 0) 
+      });
     }
 
     return days;
@@ -72,6 +97,7 @@ export default function AgendaPage() {
     const day = date.getDay();
     const diff = date.getDate() - day;
     const startOfWeek = new Date(date.setDate(diff));
+    startOfWeek.setHours(12, 0, 0); // midday safety
     const days = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(startOfWeek);
@@ -112,7 +138,7 @@ export default function AgendaPage() {
   };
 
   const handlePrev = () => {
-    const d = new Date(selectedDate);
+    const d = parseDateLocal(selectedDate);
     if (viewMode === 'month') {
       d.setMonth(d.getMonth() - 1);
     } else if (viewMode === 'week') {
@@ -120,11 +146,11 @@ export default function AgendaPage() {
     } else {
       d.setDate(d.getDate() - 1);
     }
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateLocal(d));
   };
 
   const handleNext = () => {
-    const d = new Date(selectedDate);
+    const d = parseDateLocal(selectedDate);
     if (viewMode === 'month') {
       d.setMonth(d.getMonth() + 1);
     } else if (viewMode === 'week') {
@@ -132,7 +158,7 @@ export default function AgendaPage() {
     } else {
       d.setDate(d.getDate() + 1);
     }
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDateLocal(d));
   };
 
   const handleOpenModal = (slot: string) => {
@@ -264,11 +290,12 @@ export default function AgendaPage() {
                 ))}
               </div>
               <div className="grid grid-cols-7">
-                {getDaysInMonth(new Date(selectedDate)).map((item, idx) => {
-                  const dateStr = item.date.toISOString().split('T')[0];
+                {getDaysInMonth(parseDateLocal(selectedDate)).map((item, idx) => {
+                  const dateStr = formatDateLocal(item.date);
                   const dayAppointments = monthAppointments.filter(a => a.date === dateStr);
                   const isSelected = selectedDate === dateStr;
-                  const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                  const isToday = formatDateLocal(new Date()) === dateStr;
+                  const hasAppointments = dayAppointments.length > 0;
 
                   return (
                     <div 
@@ -285,10 +312,12 @@ export default function AgendaPage() {
                     >
                       <div className="flex justify-between items-start">
                         <span className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all ${
-                          isSelected 
-                          ? 'bg-primary text-on-primary' 
-                          : isToday 
-                          ? 'bg-primary/10 text-primary' 
+                          isToday 
+                          ? 'bg-primary text-on-primary font-black shadow-lg shadow-primary/20 scale-105' 
+                          : hasAppointments 
+                          ? 'bg-primary/10 text-primary font-bold border border-primary/20' 
+                          : isSelected
+                          ? 'border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200'
                           : 'text-slate-500 dark:text-slate-400 group-hover:text-primary'
                         }`}>
                           {item.day}
@@ -323,8 +352,8 @@ export default function AgendaPage() {
               animate={{ opacity: 1 }}
               className="grid grid-cols-1 md:grid-cols-7 gap-4"
             >
-              {getDaysInWeek(new Date(selectedDate)).map((day, idx) => {
-                const dateStr = day.toISOString().split('T')[0];
+              {getDaysInWeek(parseDateLocal(selectedDate)).map((day, idx) => {
+                const dateStr = formatDateLocal(day);
                 const dayAppointments = monthAppointments.filter(a => a.date === dateStr);
                 const isSelected = selectedDate === dateStr;
 
