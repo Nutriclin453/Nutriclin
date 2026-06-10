@@ -302,8 +302,17 @@ export const savePatient = (patient: Patient): Patient => {
 };
 
 export const deletePatient = (id: string): void => {
+  const patient = getPatients().find(p => p.id === id);
   const list = getPatients().filter(p => p.id !== id);
   setStorageItem('mock_patients', list);
+
+  // Clean up any appointments associated with this patient
+  const appointments = getAppointments().filter(app => {
+    const isIdMatch = app.patientId === id;
+    const isNameMatch = patient ? app.patientName.toLowerCase().trim() === patient.name.toLowerCase().trim() : false;
+    return !isIdMatch && !isNameMatch;
+  });
+  setStorageItem('mock_appointments', appointments);
 };
 
 // Evaluations

@@ -428,6 +428,30 @@ export const PatientService = {
     }
 
     try {
+      // 1. Fetch patient name before deleting them so we can clean up appointments by name match as well
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('name')
+        .eq('id', id)
+        .maybeSingle();
+
+      const patientName = patientData?.name;
+
+      // 2. Delete appointments belonging to this patient's ID
+      await supabase
+        .from('appointments')
+        .delete()
+        .eq('patient_id', id);
+
+      // 3. Delete appointments matching this patient's Name (e.g. if entered as draft or matching name string)
+      if (patientName) {
+        await supabase
+          .from('appointments')
+          .delete()
+          .eq('patient_name', patientName);
+      }
+
+      // 4. Delete the patient node itself
       const { error } = await supabase
         .from('patients')
         .delete()
