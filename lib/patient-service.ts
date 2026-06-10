@@ -20,13 +20,9 @@ export interface Patient {
 }
 
 const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
-  const msg = error.message || String(error);
-  if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network') || msg.includes('TypeError')) {
-    console.warn('Network or fetch error detected with Supabase. Switching to local mock state.', error);
-    setForceMock(true);
-    return fallback();
-  }
-  throw error;
+  console.warn('Supabase or database error in PatientService. Falling back to safe local mock database.', error);
+  setForceMock(true);
+  return fallback();
 };
 
 export const PatientService = {

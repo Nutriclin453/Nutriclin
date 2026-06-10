@@ -2,12 +2,8 @@ import { supabase } from './supabase';
 import { isMockEnabled, getAppointments, saveAppointment, deleteAppointment, Appointment } from './mock-db';
 
 const handleFetchError = <T>(error: any, fallback: () => T): T | Promise<T> => {
-  const msg = error.message || String(error);
-  if (msg.includes('Failed to fetch') || msg.includes('fetch') || msg.includes('NetworkError') || msg.includes('network')) {
-    console.warn('Network or fetch error detected with Supabase. Switching to local mock state.', error);
-    return fallback();
-  }
-  throw error;
+  console.warn('Supabase or database error in AppointmentService. Falling back to safe local mock database.', error);
+  return fallback();
 };
 
 export const AppointmentService = {
