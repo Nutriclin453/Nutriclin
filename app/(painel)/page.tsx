@@ -26,8 +26,16 @@ import { PatientService } from '@/lib/patient-service';
 import { EvaluationService } from '@/lib/evaluation-service';
 import { DietService } from '@/lib/diet-service';
 import { LeadService } from '@/lib/lead-service';
+import { AppointmentService } from '@/lib/appointment-service';
 import { useAuth } from '@/components/supabase-provider';
 import { setForceMock } from '@/lib/mock-db';
+
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const data = [
   { name: 'Jan', value: 400 },
@@ -43,76 +51,109 @@ export default function Dashboard() {
   const [totalPatients, setTotalPatients] = useState<number | null>(null);
   const [totalEvaluations, setTotalEvaluations] = useState<number | null>(null);
   const [totalDiets, setTotalDiets] = useState<number | null>(null);
-  const [nextAppointment, setNextAppointment] = useState<{ patientName: string; date: Date } | null>(null);
+  const [nextAppointment, setNextAppointment] = useState<{ patientName: string; dateString: string; time?: string } | null>(null);
   const [statsLoaded, setStatsLoaded] = useState(false);
 
   useEffect(() => {
     async function fetchStats(retryCount = 0) {
       try {
-        const [patientsData, evaluationsData, dietsData, leadsData] = await Promise.all([
+        const [patientsData, evaluationsData, dietsData, leadsData, appointmentsData] = await Promise.all([
           PatientService.getAll(),
           EvaluationService.getAll(),
           DietService.getAll(),
-          LeadService.getAll()
+          LeadService.getAll(),
+          AppointmentService.getAll()
         ]);
         setTotalPatients(patientsData?.length || 0);
         setTotalEvaluations(evaluationsData?.length || 0);
         setTotalDiets(dietsData?.length || 0);
 
-        // Filter the leads (triagem page participants) who are NOT registered as patients and do not have any evaluations.
-        // A registered patient or a completed assessment means they are already attended.
-        const patientNames = new Set(
-          (patientsData || []).map(p => (p.name || '').toLowerCase().trim())
-        );
-        const patientEmails = new Set(
-          (patientsData || []).map(p => (p.email || '').toLowerCase().trim()).filter(Boolean)
-        );
-        const patientPhones = new Set(
-          (patientsData || []).map(p => {
-            const raw = p.phone || (p as any).telefone || (p as any).whatsapp || '';
-            return raw.replace(/\D/g, '');
-          }).filter(Boolean)
-        );
+        // Find standard scheduled appointments that are upcoming
+        const todayStr = formatDateLocal(new Date());
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
 
-        const evaluatedNames = new Set(
-          (evaluationsData || []).map(e => (e.patientName || '').toLowerCase().trim())
-        );
-
-        const pendingLeads = (leadsData || []).filter(lead => {
-          const leadName = (lead.name || '').toLowerCase().trim();
-          if (!leadName || leadName === '__nutritionist_system_metadata_do_not_delete__') return false;
-          
-          const leadEmail = (lead.email || '').toLowerCase().trim();
-          const leadPhone = (lead.phone || '').replace(/\D/g, '');
-
-          // Filter out anyone who has been registered as a patient or evaluated
-          if (evaluatedNames.has(leadName)) return false;
-          if (patientNames.has(leadName)) return false;
-          if (leadEmail && patientEmails.has(leadEmail)) return false;
-          if (leadPhone && patientPhones.has(leadPhone)) return false;
-
-          return true;
-        });
-
-        const upcoming = pendingLeads.map(lead => {
-          let date;
-          if (lead.created_at) {
-             date = new Date(lead.created_at);
-          } else {
-             date = new Date();
+        const upcomingApps = (appointmentsData || []).filter((app: any) => {
+          if (app.date > todayStr) return true;
+          if (app.date === todayStr) {
+            return app.time >= currentTimeStr;
           }
-          return {
-             patientName: lead.name,
-             date
-          };
+          return false;
         });
 
-        if (upcoming.length > 0) {
-           // Sort by creation date so the next pending lead starts from oldest pending to newest
-           upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
-           setNextAppointment(upcoming[0]);
+        if (upcomingApps.length > 0) {
+          upcomingApps.sort((a: any, b: any) => {
+            if (a.date !== b.date) {
+              return a.date.localeCompare(b.date);
+            }
+            return a.time.localeCompare(b.time);
+          });
+          
+          setNextAppointment({
+            patientName: upcomingApps[0].patientName,
+            dateString: upcomingApps[0].date,
+            time: upcomingApps[0].time
+          });
         } else {
-           setNextAppointment(null);
+          // Fallback to triagem leads (not registered as database patients yet)
+          const patientNames = new Set(
+            (patientsData || []).map(p => (p.name || '').toLowerCase().trim())
+          );
+          const patientEmails = new Set(
+            (patientsData || []).map(p => (p.email || '').toLowerCase().trim()).filter(Boolean)
+          );
+          const patientPhones = new Set(
+            (patientsData || []).map(p => {
+              const raw = p.phone || (p as any).telefone || (p as any).whatsapp || '';
+              return raw.replace(/\D/g, '');
+            }).filter(Boolean)
+          );
+
+          const evaluatedNames = new Set(
+            (evaluationsData || []).map(e => (e.patientName || '').toLowerCase().trim())
+          );
+
+          const pendingLeads = (leadsData || []).filter(lead => {
+            const leadName = (lead.name || '').toLowerCase().trim();
+            if (!leadName || leadName === '__nutritionist_system_metadata_do_not_delete__') return false;
+            
+            const leadEmail = (lead.email || '').toLowerCase().trim();
+            const leadPhone = (lead.phone || '').replace(/\D/g, '');
+
+            // Filter out anyone who has been registered as a patient or evaluated
+            if (evaluatedNames.has(leadName)) return false;
+            if (patientNames.has(leadName)) return false;
+            if (leadEmail && patientEmails.has(leadEmail)) return false;
+            if (leadPhone && patientPhones.has(leadPhone)) return false;
+
+            return true;
+          });
+
+          const upcomingLeads = pendingLeads.map(lead => {
+            let date;
+            if (lead.created_at) {
+               date = new Date(lead.created_at);
+            } else {
+               date = new Date();
+            }
+            return {
+               patientName: lead.name,
+               dateString: formatDateLocal(date)
+            };
+          });
+
+          if (upcomingLeads.length > 0) {
+             upcomingLeads.sort((a, b) => a.dateString.localeCompare(b.dateString));
+             setNextAppointment({
+               patientName: upcomingLeads[0].patientName,
+               dateString: upcomingLeads[0].dateString,
+               time: 'Triagem'
+             });
+          } else {
+             setNextAppointment(null);
+          }
         }
       } catch (err: any) {
         console.error("Failed to fetch dashboard stats", err);
@@ -137,14 +178,15 @@ export default function Dashboard() {
     if (!statsLoaded) return { value: '—', subtitle: '' };
     if (!nextAppointment) return { value: 'Nenhum pendente', subtitle: 'Nenhum agendamento pendente', isNone: true };
     
-    // format as 'DD [Mês por extenso]'
-    const day = String(nextAppointment.date.getDate()).padStart(2, '0');
-    const month = nextAppointment.date.toLocaleDateString('pt-BR', { month: 'long' });
-    const formattedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+    const [year, month, day] = nextAppointment.dateString.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day, 12, 0, 0);
+    const formattedDay = String(day).padStart(2, '0');
+    const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
+    const formattedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
     
     return {
-      value: `${day} ${formattedMonth}`,
-      subtitle: nextAppointment.patientName
+      value: `${formattedDay} de ${formattedMonth}`,
+      subtitle: nextAppointment.time ? `${nextAppointment.time} - ${nextAppointment.patientName}` : nextAppointment.patientName
     };
   };
 
