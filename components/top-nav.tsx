@@ -61,24 +61,9 @@ export function TopNav() {
           const stored = localStorage.getItem('mock_notifications');
           let list = [];
           if (stored) {
-            list = JSON.parse(stored);
+            list = JSON.parse(stored).filter((n: any) => n.id !== 'notif-1' && n.id !== 'notif-2');
           } else {
-            list = [
-              {
-                id: 'notif-1',
-                title: 'Novo Lead do Instagram!',
-                message: 'Mariana Costa quer marcar uma consulta.',
-                read: false,
-                created_at: new Date(Date.now() - 3600000).toISOString()
-              },
-              {
-                id: 'notif-2',
-                title: 'Atualização de Triagem',
-                message: 'Felipe Melo preencheu o formulário.',
-                read: false,
-                created_at: new Date(Date.now() - 7200000).toISOString()
-              }
-            ];
+            list = [];
             localStorage.setItem('mock_notifications', JSON.stringify(list));
           }
 

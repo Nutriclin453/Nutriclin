@@ -155,11 +155,24 @@ export default function TriagemPage() {
       }
 
       try {
-        await supabase.from('notifications').insert({
-          title: 'Novo Lead do Instagram!',
-          message: name.trim(),
-          read: false,
-        });
+        if (isMockEnabled()) {
+          const stored = localStorage.getItem('mock_notifications');
+          const list = stored ? JSON.parse(stored) : [];
+          list.unshift({
+            id: `notif-${Date.now()}`,
+            title: 'Novo Lead do Instagram!',
+            message: name.trim(),
+            read: false,
+            created_at: new Date().toISOString()
+          });
+          localStorage.setItem('mock_notifications', JSON.stringify(list));
+        } else {
+          await supabase.from('notifications').insert({
+            title: 'Novo Lead do Instagram!',
+            message: name.trim(),
+            read: false,
+          });
+        }
       } catch (notifErr) {
         console.error('Failed to create notification', notifErr);
       }
